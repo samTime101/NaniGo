@@ -9,7 +9,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 def _issue_token(parent_id: str) -> str:
     token = uid() + uid()
-    store.tokens[token] = parent_id
+    store.save_token(token, parent_id)
     return token
 
 
@@ -21,8 +21,7 @@ def signup(body: ParentSignup):
                 raise HTTPException(status_code=409, detail="Email already registered")
         parent_id = uid()
         parent = {"id": parent_id, "name": body.name, "email": body.email}
-        store.parents[parent_id] = parent
-        store.passwords[parent_id] = body.password
+        store.save_parent(parent, password=body.password)
         token = _issue_token(parent_id)
     return AuthResponse(parent=Parent(**parent), token=token)
 

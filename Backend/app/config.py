@@ -21,5 +21,8 @@ class Settings:
 
     HEART_REFILL_MINUTES: int = int(os.getenv("HEART_REFILL_MINUTES", "5"))
 
+    # SQLite database file (relative to the Backend folder by default).
+    DATABASE_PATH: str = os.getenv("DATABASE_PATH", "nanigo.db")
+
 
 settings = Settings()

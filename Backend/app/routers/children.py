@@ -52,7 +52,7 @@ def add_child(body: ChildCreate, parent: dict = Depends(get_current_parent)):
             "completed_levels": {},
             "activity": [],
         }
-        store.children[child["id"]] = child
+        store.save_child(child)
     return Child(**child)
 
 
@@ -61,6 +61,7 @@ def regenerate_code(child_id: str, parent: dict = Depends(get_current_parent)):
     child = _owned_child(child_id, parent["id"])
     with store.lock:
         child["child_code"] = gen_code()
+        store.save_child(child)
     return Child(**child)
 
 
@@ -107,6 +108,7 @@ def complete_level(child_id: str, body: LevelAttempt):
             },
         )
         child["activity"] = child["activity"][:8]
+        store.save_child(child)
     return LevelResult(xp_earned=xp, stars=stars, total_xp=child["total_xp"])
 
 
@@ -121,6 +123,7 @@ def lose_heart(child_id: str):
         child["hearts"] = max(0, child["hearts"] - 1)
         if child["hearts"] == 0:
             child["hearts_refill_at"] = now_ms() + settings.HEART_REFILL_MINUTES * 60_000
+        store.save_child(child)
     return Child(**child)
 
 
@@ -132,4 +135,5 @@ def refill_hearts(child_id: str):
     with store.lock:
         child["hearts"] = 3
         child["hearts_refill_at"] = None
+        store.save_child(child)
     return Child(**child)

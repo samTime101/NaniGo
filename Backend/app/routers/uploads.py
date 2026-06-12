@@ -43,11 +43,13 @@ def _run_pipeline(pack_id: str, subject: str, age: int, grade: int, images: list
                 pack["questions"] = questions
                 pack["levels"] = levels
                 pack["status"] = "ready" if questions else "failed"
+                store.save_pack(pack)
     except Exception:
         with store.lock:
             pack = store.packs.get(pack_id)
             if pack:
                 pack["status"] = "failed"
+                store.save_pack(pack)
 
 
 @router.post("", response_model=UploadResponse)
@@ -68,18 +70,20 @@ async def upload_book(
     pack_id = f"pers-{uid()}"
     title, title_np = SUBJECT_TITLES.get(subject, SUBJECT_TITLES["math"])
     with store.lock:
-        store.packs[pack_id] = {
-            "id": pack_id,
-            "title": title,
-            "title_np": title_np,
-            "subject": subject,
-            "type": "personalized",
-            "status": "generating",
-            "grade": child["grade"],
-            "created_by": parent["name"].split(" ")[0],
-            "questions": [],
-            "levels": [],
-        }
+        store.save_pack(
+            {
+                "id": pack_id,
+                "title": title,
+                "title_np": title_np,
+                "subject": subject,
+                "type": "personalized",
+                "status": "generating",
+                "grade": child["grade"],
+                "created_by": parent["name"].split(" ")[0],
+                "questions": [],
+                "levels": [],
+            }
+        )
 
     threading.Thread(
         target=_run_pipeline,
@@ -97,6 +101,7 @@ def retry_upload(pack_id: str, parent: dict = Depends(get_current_parent)):
         raise HTTPException(status_code=404, detail="Pack not found")
     with store.lock:
         pack["status"] = "generating"
+        store.save_pack(pack)
     # Re-run with no images (uses fallback bank for the subject).
     threading.Thread(
         target=_run_pipeline,

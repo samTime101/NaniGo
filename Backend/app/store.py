@@ -1,15 +1,23 @@
-"""In-memory data store seeded for instant demo readiness.
+"""SQLite-backed data store with an in-memory write-through cache.
 
-Keeps the whole app functional without external dependencies. Swappable
-for Postgres/Supabase later by replacing the repository methods.
+Entities are persisted as JSON blobs (one row per entity), which keeps the
+schema trivial while matching the dict-based model used across the routers.
+The in-memory cache is loaded at startup so reads stay fast and the existing
+in-place mutation pattern keeps working; callers persist changes by calling
+the `save_*` helpers.
+
+Battles are intentionally kept in memory only — they are ephemeral.
 """
 
 from __future__ import annotations
 
+import json
+import sqlite3
 import threading
 import time
 import uuid
 
+from .config import settings
 from .data.questions import SUBJECT_BANK
 
 _lock = threading.RLock()
@@ -60,77 +68,170 @@ def _default_pack(subject, title, title_np, questions):
 
 
 class Store:
-    def __init__(self) -> None:
+    def __init__(self, db_path: str | None = None) -> None:
+        self.db_path = db_path or settings.DATABASE_PATH
+        self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        self._conn.row_factory = sqlite3.Row
+        self._init_schema()
+
+        # in-memory caches
         self.parents: dict[str, dict] = {}
-        self.passwords: dict[str, str] = {}  # parent_id -> password (demo only)
-        self.tokens: dict[str, str] = {}  # token -> parent_id
+        self.passwords: dict[str, str] = {}
+        self.tokens: dict[str, str] = {}
         self.children: dict[str, dict] = {}
         self.packs: dict[str, dict] = {}
-        self.battles: dict[str, dict] = {}
-        self._seed()
+        self.battles: dict[str, dict] = {}  # ephemeral, not persisted
+
+        self._load()
+        if not self.packs:
+            self._seed()
+
+    # ---------- schema ----------
+    def _init_schema(self) -> None:
+        with _lock:
+            self._conn.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS parents (
+                    id TEXT PRIMARY KEY,
+                    data TEXT NOT NULL,
+                    password TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS tokens (
+                    token TEXT PRIMARY KEY,
+                    parent_id TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS children (
+                    id TEXT PRIMARY KEY,
+                    data TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS packs (
+                    id TEXT PRIMARY KEY,
+                    data TEXT NOT NULL
+                );
+                """
+            )
+            self._conn.commit()
+
+    # ---------- load cache ----------
+    def _load(self) -> None:
+        cur = self._conn.cursor()
+        for row in cur.execute("SELECT id, data, password FROM parents"):
+            self.parents[row["id"]] = json.loads(row["data"])
+            self.passwords[row["id"]] = row["password"]
+        for row in cur.execute("SELECT token, parent_id FROM tokens"):
+            self.tokens[row["token"]] = row["parent_id"]
+        for row in cur.execute("SELECT id, data FROM children"):
+            self.children[row["id"]] = json.loads(row["data"])
+        for row in cur.execute("SELECT id, data FROM packs"):
+            self.packs[row["id"]] = json.loads(row["data"])
+
+    # ---------- persistence helpers ----------
+    def save_parent(self, parent: dict, password: str | None = None) -> None:
+        with _lock:
+            self.parents[parent["id"]] = parent
+            if password is not None:
+                self.passwords[parent["id"]] = password
+            pw = self.passwords.get(parent["id"], "")
+            self._conn.execute(
+                "INSERT INTO parents (id, data, password) VALUES (?, ?, ?) "
+                "ON CONFLICT(id) DO UPDATE SET data=excluded.data, password=excluded.password",
+                (parent["id"], json.dumps(parent), pw),
+            )
+            self._conn.commit()
+
+    def save_token(self, token: str, parent_id: str) -> None:
+        with _lock:
+            self.tokens[token] = parent_id
+            self._conn.execute(
+                "INSERT OR REPLACE INTO tokens (token, parent_id) VALUES (?, ?)",
+                (token, parent_id),
+            )
+            self._conn.commit()
+
+    def save_child(self, child: dict) -> None:
+        with _lock:
+            self.children[child["id"]] = child
+            self._conn.execute(
+                "INSERT INTO children (id, data) VALUES (?, ?) "
+                "ON CONFLICT(id) DO UPDATE SET data=excluded.data",
+                (child["id"], json.dumps(child)),
+            )
+            self._conn.commit()
+
+    def save_pack(self, pack: dict) -> None:
+        with _lock:
+            self.packs[pack["id"]] = pack
+            self._conn.execute(
+                "INSERT INTO packs (id, data) VALUES (?, ?) "
+                "ON CONFLICT(id) DO UPDATE SET data=excluded.data",
+                (pack["id"], json.dumps(pack)),
+            )
+            self._conn.commit()
 
     # ---------- seeding ----------
     def _seed(self) -> None:
-        self.packs["default-math"] = _default_pack(
-            "math", "Math Adventure", "गणित यात्रा", SUBJECT_BANK["math"]
+        self.save_pack(
+            _default_pack("math", "Math Adventure", "गणित यात्रा", SUBJECT_BANK["math"])
         )
-        self.packs["default-nepali"] = _default_pack(
-            "nepali", "Nepali Words", "नेपाली शब्द", SUBJECT_BANK["nepali"]
+        self.save_pack(
+            _default_pack("nepali", "Nepali Words", "नेपाली शब्द", SUBJECT_BANK["nepali"])
         )
-        self.packs["default-science"] = _default_pack(
-            "science", "Science Explorer", "विज्ञान खोज", SUBJECT_BANK["science"]
+        self.save_pack(
+            _default_pack("science", "Science Explorer", "विज्ञान खोज", SUBJECT_BANK["science"])
         )
 
         parent_id = "parent-1"
-        self.parents[parent_id] = {
-            "id": parent_id,
-            "name": "Sita Sharma",
-            "email": "demo@nanigo.app",
-        }
-        self.passwords[parent_id] = "demo1234"
+        self.save_parent(
+            {"id": parent_id, "name": "Sita Sharma", "email": "demo@nanigo.app"},
+            password="demo1234",
+        )
 
-        self.children["child-1"] = {
-            "id": "child-1",
-            "parent_id": parent_id,
-            "name": "Aarav",
-            "age": 7,
-            "grade": 2,
-            "avatar": "tiger",
-            "child_code": "482913",
-            "total_xp": 1240,
-            "streak_days": 5,
-            "hearts": 3,
-            "hearts_refill_at": None,
-            "accuracy": 86,
-            "time_today_min": 24,
-            "weekly_xp": [120, 80, 160, 200, 140, 260, 280],
-            "completed_levels": {"default-math": 3, "default-nepali": 1},
-            "activity": [
-                {"id": "a1", "text": "Completed Level 3 - Math Adventure", "stars": 3, "at": now_ms() - 3_600_000},
-                {"id": "a2", "text": "Completed Level 1 - Nepali Words", "stars": 2, "at": now_ms() - 7_200_000},
-            ],
-        }
-        self.children["child-2"] = {
-            "id": "child-2",
-            "parent_id": parent_id,
-            "name": "Diya",
-            "age": 9,
-            "grade": 4,
-            "avatar": "peacock",
-            "child_code": "305178",
-            "total_xp": 2050,
-            "streak_days": 12,
-            "hearts": 2,
-            "hearts_refill_at": None,
-            "accuracy": 91,
-            "time_today_min": 38,
-            "weekly_xp": [200, 240, 180, 320, 280, 300, 360],
-            "completed_levels": {"default-math": 5, "default-science": 2},
-            "activity": [
-                {"id": "b1", "text": "Completed Level 5 - Math Adventure", "stars": 3, "at": now_ms() - 1_800_000},
-                {"id": "b2", "text": "Completed Level 2 - Science Explorer", "stars": 3, "at": now_ms() - 9_000_000},
-            ],
-        }
+        self.save_child(
+            {
+                "id": "child-1",
+                "parent_id": parent_id,
+                "name": "Aarav",
+                "age": 7,
+                "grade": 2,
+                "avatar": "tiger",
+                "child_code": "482913",
+                "total_xp": 1240,
+                "streak_days": 5,
+                "hearts": 3,
+                "hearts_refill_at": None,
+                "accuracy": 86,
+                "time_today_min": 24,
+                "weekly_xp": [120, 80, 160, 200, 140, 260, 280],
+                "completed_levels": {"default-math": 3, "default-nepali": 1},
+                "activity": [
+                    {"id": "a1", "text": "Completed Level 3 - Math Adventure", "stars": 3, "at": now_ms() - 3_600_000},
+                    {"id": "a2", "text": "Completed Level 1 - Nepali Words", "stars": 2, "at": now_ms() - 7_200_000},
+                ],
+            }
+        )
+        self.save_child(
+            {
+                "id": "child-2",
+                "parent_id": parent_id,
+                "name": "Diya",
+                "age": 9,
+                "grade": 4,
+                "avatar": "peacock",
+                "child_code": "305178",
+                "total_xp": 2050,
+                "streak_days": 12,
+                "hearts": 2,
+                "hearts_refill_at": None,
+                "accuracy": 91,
+                "time_today_min": 38,
+                "weekly_xp": [200, 240, 180, 320, 280, 300, 360],
+                "completed_levels": {"default-math": 5, "default-science": 2},
+                "activity": [
+                    {"id": "b1", "text": "Completed Level 5 - Math Adventure", "stars": 3, "at": now_ms() - 1_800_000},
+                    {"id": "b2", "text": "Completed Level 2 - Science Explorer", "stars": 3, "at": now_ms() - 9_000_000},
+                ],
+            }
+        )
 
     # ---------- helpers ----------
     @property
