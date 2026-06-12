@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Users, Gamepad2, ChevronRight } from 'lucide-react'
 import { Screen } from '../components/ui'
 import Mascot from '../components/Mascot'
+import { Bi } from '../lib/lang'
 
 export default function RoleSelect() {
   const nav = useNavigate()
@@ -35,8 +36,9 @@ export default function RoleSelect() {
                 <Gamepad2 size={40} />
               </div>
               <div>
-                <div className="text-2xl font-extrabold">I'm a Kid</div>
-                <div className="text-base opacity-90">म बच्चा हुँ</div>
+                <div className="text-2xl font-extrabold">
+                  <Bi en="I'm a Kid" np="म बच्चा हुँ" />
+                </div>
               </div>
             </div>
             <ChevronRight size={32} />
@@ -54,8 +56,9 @@ export default function RoleSelect() {
                 <Users size={40} />
               </div>
               <div>
-                <div className="text-2xl font-extrabold">I'm a Parent</div>
-                <div className="text-base text-orange">म अभिभावक हुँ</div>
+                <div className="text-2xl font-extrabold">
+                  <Bi en="I'm a Parent" np="म अभिभावक हुँ" />
+                </div>
               </div>
             </div>
             <ChevronRight size={32} />

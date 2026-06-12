@@ -1,18 +1,26 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, RefreshCw, Clock, LogOut, QrCode } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Clock, LogOut, QrCode, Globe } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Screen } from '../../components/ui'
 import Avatar from '../../components/Avatar'
 import { ParentNav } from '../../components/KidChrome'
 import { useGame } from '../../store/GameStore'
+import { useLang, type Lang } from '../../lib/lang'
 
 export default function Settings() {
   const nav = useNavigate()
   const { children, regenerateCode } = useGame()
+  const { lang, setLang } = useLang()
   const [limit, setLimit] = useState(30)
   const [openQr, setOpenQr] = useState<string | null>(null)
+
+  const LANGS: { id: Lang; label: string }[] = [
+    { id: 'en', label: 'English' },
+    { id: 'np', label: 'नेपाली' },
+    { id: 'both', label: 'Both' },
+  ]
 
   return (
     <Screen>
@@ -90,6 +98,23 @@ export default function Settings() {
               </div>
             )
           })}
+        </div>
+
+        <div className="mb-2 flex items-center gap-2 font-bold text-[#555]">
+          <Globe size={18} /> Language / भाषा
+        </div>
+        <div className="mb-6 flex gap-2 rounded-2xl bg-mist p-1">
+          {LANGS.map((l) => (
+            <button
+              key={l.id}
+              onClick={() => setLang(l.id)}
+              className={`flex-1 rounded-xl py-2.5 font-bold transition-colors ${
+                lang === l.id ? 'bg-white text-teal shadow' : 'text-[#7a8a86]'
+              }`}
+            >
+              {l.label}
+            </button>
+          ))}
         </div>
 
         <div className="mb-2 font-bold text-[#555]">Daily Time Limit</div>

@@ -5,6 +5,7 @@ import { Screen, Loading } from '../../components/ui'
 import Mascot from '../../components/Mascot'
 import { KidTopBar, BottomNav } from '../../components/KidChrome'
 import { useGame } from '../../store/GameStore'
+import { Bi } from '../../lib/lang'
 import type { SubjectId } from '../../types'
 
 const SUBJECT_META: Record<
@@ -47,9 +48,11 @@ export default function KidHome() {
               animate={{ opacity: 1, x: 0 }}
               className="text-2xl font-extrabold text-teal"
             >
-              Namaste, {activeChild.name}!
+              <Bi en={`Namaste, ${activeChild.name}!`} np={`नमस्ते, ${activeChild.name}!`} />
             </motion.h1>
-            <p className="font-semibold text-orange">नमस्ते! Ready to play?</p>
+            <p className="font-semibold text-orange">
+              <Bi en="Ready to play?" np="खेल्न तयार?" />
+            </p>
           </div>
         </div>
 
@@ -87,7 +90,7 @@ export default function KidHome() {
           <div className="mb-3 flex items-center gap-2">
             <BookOpen className="text-teal" />
             <span className="text-lg font-extrabold text-[#444]">
-              Subjects · विषयहरू
+              <Bi en="Subjects" np="विषयहरू" />
             </span>
           </div>
           <div className="grid grid-cols-2 gap-4 pb-28">
