@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import { ConversationProvider } from '@elevenlabs/react'
 import './index.css'
 import App from './App.tsx'
 import { GameProvider } from './store/GameStore.tsx'
@@ -13,7 +14,9 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <LanguageProvider>
           <GameProvider>
-            <App />
+            <ConversationProvider>
+              <App />
+            </ConversationProvider>
           </GameProvider>
         </LanguageProvider>
       </BrowserRouter>

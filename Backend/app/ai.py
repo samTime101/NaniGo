@@ -146,6 +146,46 @@ def _guess_mime(data: bytes) -> str:
     return "image/jpeg"
 
 
+OCR_PROMPT = (
+    "You are an OCR assistant for a children's learning app in Nepal. Read the "
+    "attached textbook page images carefully. They may contain Devanagari / "
+    "Nepali text. Transcribe ALL the educational content into clean plain text, "
+    "preserving the original order, headings, lists, and any worked examples. "
+    "Do NOT summarise or add commentary — return only the transcribed text."
+)
+
+
+def extract_book_text(image_bytes: list[bytes] | None) -> str:
+    """OCR the uploaded pages into plain text for the voice tutor's knowledge.
+
+    Returns an empty string when no key/images are available or on any error;
+    callers fall back to building context from the generated questions.
+    """
+    if not settings.GEMINI_API_KEY or not image_bytes:
+        return ""
+
+    try:
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        contents: list = [OCR_PROMPT]
+        for img in image_bytes[:10]:
+            contents.append(
+                types.Part.from_bytes(data=img, mime_type=_guess_mime(img))
+            )
+
+        response = client.models.generate_content(
+            model=settings.GEMINI_MODEL,
+            contents=contents,
+            config=types.GenerateContentConfig(temperature=0.0),
+        )
+        return (response.text or "").strip()[:8000]
+    except Exception as exc:  # pragma: no cover - network/SDK errors
+        print(f"[ai] Gemini OCR failed: {exc}")
+        return ""
+
+
 def generate_questions(
     subject: str,
     age: int,

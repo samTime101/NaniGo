@@ -277,6 +277,32 @@ export const api = {
     );
   },
 
+  // voice tutor (ElevenLabs)
+  async tutorConfig() {
+    return request<{ enabled: boolean; agent_id: string }>('/tutor/config');
+  },
+
+  async tutorSession(packId: string, childId?: string) {
+    const qs = childId ? `?child_id=${encodeURIComponent(childId)}` : '';
+    return request<{
+      signed_url: string;
+      agent_id: string;
+      system_prompt: string;
+      first_message: string;
+    }>(`/tutor/${packId}/session${qs}`);
+  },
+
+  // General tutor session (not tied to a specific book).
+  async tutorGeneralSession(childId?: string) {
+    const qs = childId ? `?child_id=${encodeURIComponent(childId)}` : '';
+    return request<{
+      signed_url: string;
+      agent_id: string;
+      system_prompt: string;
+      first_message: string;
+    }>(`/tutor/session${qs}`);
+  },
+
   // uploads (parent, auth, multipart)
   async uploadBook(childId: string, subject: SubjectId, files: File[]) {
     const fd = new FormData();

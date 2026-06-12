@@ -36,6 +36,13 @@ class Settings:
     # Vision-capable model handles OCR (incl. Devanagari) + generation.
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
+    # ElevenLabs Conversational AI powers the kid-facing voice tutor.
+    # The tutor answers questions about an uploaded book using a RAG-style
+    # system prompt built from the OCR'd page text + generated questions.
+    # Leave the key/agent empty to disable the feature (frontend hides it).
+    ELEVENLABS_API_KEY: str = os.getenv("ELEVENLABS_API_KEY", "")
+    ELEVENLABS_AGENT_ID: str = os.getenv("ELEVENLABS_AGENT_ID", "")
+
     HEART_REFILL_MINUTES: int = int(os.getenv("HEART_REFILL_MINUTES", "5"))
 
     # SQLite database file (relative to the Backend folder by default).

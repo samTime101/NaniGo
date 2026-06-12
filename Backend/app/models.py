@@ -53,6 +53,8 @@ class QuestionPack(BaseModel):
     created_at: Optional[int] = None
     child_id: Optional[str] = None
     page_count: Optional[int] = None
+    # OCR'd page text used to ground the voice tutor's answers (RAG context).
+    source_text: Optional[str] = None
     questions: list[Question] = []
     levels: list[Level] = []
 

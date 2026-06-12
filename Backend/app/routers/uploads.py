@@ -2,7 +2,7 @@ import threading
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
-from ..ai import generate_questions
+from ..ai import extract_book_text, generate_questions
 from ..deps import get_current_parent
 from ..models import QuestionPack, SubjectId, UploadResponse
 from ..store import now_ms, store, uid
@@ -21,6 +21,10 @@ def _run_pipeline(pack_id: str, subject: str, age: int, grade: int, images: list
     """Background worker: generate, validate, split into 3 levels of 5."""
     try:
         raw = generate_questions(subject, age, grade, images)
+        # OCR the pages into plain text so the voice tutor can ground its
+        # answers in the actual book content (RAG). Falls back to an empty
+        # string; the tutor router then derives context from the questions.
+        source_text = extract_book_text(images)
         questions = []
         for i, q in enumerate(raw[:15]):
             questions.append({**q, "id": f"{pack_id}-q{i}"})
@@ -39,6 +43,7 @@ def _run_pipeline(pack_id: str, subject: str, age: int, grade: int, images: list
             if pack:
                 pack["questions"] = questions
                 pack["levels"] = levels
+                pack["source_text"] = source_text
                 pack["status"] = "ready" if questions else "failed"
                 store.save_pack(pack)
     except Exception:
