@@ -4,10 +4,13 @@ import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   ChevronDown,
+  ChevronRight,
+  ArrowRight,
   CheckCircle2,
   Shuffle,
   ListOrdered,
   HelpCircle,
+  Lightbulb,
 } from 'lucide-react'
 import { Screen, Loading } from '../../components/ui'
 import { useGame } from '../../store/GameStore'
@@ -172,7 +175,7 @@ function QuestionView({ q, n }: { q: Question; n: number }) {
               className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-[#444]"
             >
               <span className="text-orange">{p.left}</span>
-              <span className="text-[#bbb]">→</span>
+              <ArrowRight size={15} className="text-[#bbb]" />
               <span className="text-teal">{p.right}</span>
             </div>
           ))}
@@ -186,13 +189,18 @@ function QuestionView({ q, n }: { q: Question; n: number }) {
               <span className="rounded-xl bg-white px-3 py-1.5 text-sm font-semibold text-[#444]">
                 {s}
               </span>
-              {i < q.sequence!.length - 1 && <span className="text-[#bbb]">›</span>}
+              {i < q.sequence!.length - 1 && (
+                <ChevronRight size={15} className="text-[#bbb]" />
+              )}
             </span>
           ))}
         </div>
       )}
 
-      <div className="mt-2 text-sm text-[#888]">💡 {q.explanation}</div>
+      <div className="mt-2 flex items-center gap-1.5 text-sm text-[#888]">
+        <Lightbulb size={15} className="shrink-0 text-gold" />
+        {q.explanation}
+      </div>
     </div>
   )
 }

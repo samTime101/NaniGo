@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, ImagePlus, X, Wand2, Sparkles, Map } from 'lucide-react'
+import { ArrowLeft, ImagePlus, X, Wand2, Sparkles, Map, Check } from 'lucide-react'
 import { Screen, Button } from '../../components/ui'
 import { useGame } from '../../store/GameStore'
 import type { SubjectId } from '../../types'
@@ -154,7 +154,7 @@ export default function UploadBook() {
                         <div className="font-extrabold">{s.label}</div>
                         <div className="text-sm opacity-80">{s.np}</div>
                       </div>
-                      {done && <span className="ml-auto text-success">✓</span>}
+                      {done && <Check size={20} className="ml-auto text-success" />}
                     </motion.div>
                   )
                 })}

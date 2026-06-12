@@ -33,7 +33,7 @@ export default function Battle() {
     return pool.slice(0, 5)
   }, [packs])
 
-  // matchmaking → vs → play
+  // matchmaking -> vs -> play
   useEffect(() => {
     if (phase === 'match') {
       const t = setTimeout(() => setPhase('vs'), 2400)
