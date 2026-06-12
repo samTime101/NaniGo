@@ -25,9 +25,9 @@ export default function KidHome() {
   if (!activeChild) return <Navigate to="/kid/scan" replace />
 
   const defaultPacks = packs.filter((p) => p.type === 'default')
-  const readyPersonalized = packs.find(
-    (p) => p.type === 'personalized' && p.status === 'ready',
-  )
+  const readyPersonalized = packs
+    .filter((p) => p.type === 'personalized' && p.status === 'ready')
+    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))[0]
 
   return (
     <Screen>

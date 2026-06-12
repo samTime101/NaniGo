@@ -21,7 +21,9 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 export default function Dashboard() {
   const nav = useNavigate()
   const { children, parent, packs, ready } = useGame()
-  const personalizedPacks = packs.filter((p) => p.type === 'personalized')
+  const latestPack = packs
+    .filter((p) => p.type === 'personalized')
+    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))[0]
   const [activeId, setActiveId] = useState(children[0]?.id)
   const child = children.find((c) => c.id === activeId) ?? children[0]
 
@@ -140,19 +142,19 @@ export default function Dashboard() {
         </motion.button>
 
         {/* packs */}
-        {personalizedPacks.length > 0 && (
+        {latestPack && (
           <div className="mb-5">
-            <div className="mb-2 font-extrabold text-[#444]">Question Packs</div>
+            <div className="mb-2 font-extrabold text-[#444]">Latest Question Pack</div>
             <div className="flex flex-col gap-2">
-              {personalizedPacks.map((p) => (
-                <div key={p.id} className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm">
-                  <div>
-                    <div className="font-bold text-[#333]">{p.title}</div>
-                    <div className="text-sm text-[#999]">{p.questions.length} questions</div>
+              <div className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm">
+                <div>
+                  <div className="font-bold text-[#333]">{latestPack.title}</div>
+                  <div className="text-sm text-[#999]">
+                    {latestPack.questions.length} questions
                   </div>
-                  <StatusBadge status={p.status} />
                 </div>
-              ))}
+                <StatusBadge status={latestPack.status} />
+              </div>
             </div>
           </div>
         )}

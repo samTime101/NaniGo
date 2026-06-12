@@ -39,6 +39,9 @@ class QuestionPack(BaseModel):
     status: PackStatus
     grade: int
     created_by: Optional[str] = None
+    created_at: Optional[int] = None
+    child_id: Optional[str] = None
+    page_count: Optional[int] = None
     questions: list[Question] = []
     levels: list[Level] = []
 

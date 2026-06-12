@@ -168,6 +168,25 @@ class Store:
             )
             self._conn.commit()
 
+    def delete_pack(self, pack_id: str) -> None:
+        with _lock:
+            self.packs.pop(pack_id, None)
+            self._conn.execute("DELETE FROM packs WHERE id = ?", (pack_id,))
+            self._conn.commit()
+
+    def delete_personalized_packs(self) -> None:
+        """Remove all personalized packs so only the newest remains."""
+        with _lock:
+            ids = [
+                pid
+                for pid, p in self.packs.items()
+                if p.get("type") == "personalized"
+            ]
+            for pid in ids:
+                self.packs.pop(pid, None)
+                self._conn.execute("DELETE FROM packs WHERE id = ?", (pid,))
+            self._conn.commit()
+
     # ---------- seeding ----------
     def _seed(self) -> None:
         self.save_pack(

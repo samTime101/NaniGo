@@ -160,7 +160,9 @@ export function GameProvider({ children: kids }: { children: ReactNode }) {
   const uploadBook: GameContextValue['uploadBook'] = useCallback(
     async (childId, subject, files) => {
       const { pack_id } = await api.uploadBook(childId, subject, files);
-      // poll until the pipeline finishes
+      // Old personalized packs were dropped server-side; resync the list.
+      await refreshPacks();
+      // poll until the Gemini pipeline finishes
       const poll = async (tries = 0) => {
         try {
           const pack = await api.getPack(pack_id);
@@ -170,8 +172,10 @@ export function GameProvider({ children: kids }: { children: ReactNode }) {
               ? ps.map((p) => (p.id === pack.id ? pack : p))
               : [...ps, pack];
           });
-          if (pack.status === 'generating' && tries < 20) {
-            setTimeout(() => poll(tries + 1), 1200);
+          if (pack.status === 'generating' && tries < 40) {
+            setTimeout(() => poll(tries + 1), 1500);
+          } else {
+            await refreshPacks();
           }
         } catch {
           /* ignore */
@@ -180,7 +184,7 @@ export function GameProvider({ children: kids }: { children: ReactNode }) {
       poll();
       return pack_id;
     },
-    [],
+    [refreshPacks],
   );
 
   const loginChildByCode = useCallback(

@@ -38,6 +38,7 @@ export interface QuestionPack {
   status: PackStatus;
   grade: number;
   createdBy?: string; // parent name for personalized
+  createdAt?: number;
   questions: Question[];
   levels: Level[];
 }

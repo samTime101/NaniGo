@@ -1,12 +1,11 @@
 import threading
-import time
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from ..ai import generate_questions
 from ..deps import get_current_parent
 from ..models import QuestionPack, SubjectId, UploadResponse
-from ..store import store, uid
+from ..store import now_ms, store, uid
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 
@@ -20,8 +19,6 @@ SUBJECT_TITLES: dict[str, tuple[str, str]] = {
 
 def _run_pipeline(pack_id: str, subject: str, age: int, grade: int, images: list[bytes]):
     """Background worker: generate, validate, split into 3 levels of 5."""
-    # Brief delay so the UI can show its animated 3-step progress state.
-    time.sleep(2.0)
     try:
         raw = generate_questions(subject, age, grade, images)
         questions = []
@@ -63,13 +60,16 @@ async def upload_book(
     if not child or child["parent_id"] != parent["id"]:
         raise HTTPException(status_code=403, detail="Not your child")
 
+    # Read all uploaded pages (multiple images -> one question bank).
     images: list[bytes] = []
-    for f in files[:6]:
+    for f in files[:10]:
         images.append(await f.read())
 
     pack_id = f"pers-{uid()}"
     title, title_np = SUBJECT_TITLES.get(subject, SUBJECT_TITLES["math"])
     with store.lock:
+        # Keep only the latest book pack — drop any previous ones.
+        store.delete_personalized_packs()
         store.save_pack(
             {
                 "id": pack_id,
@@ -80,6 +80,9 @@ async def upload_book(
                 "status": "generating",
                 "grade": child["grade"],
                 "created_by": parent["name"].split(" ")[0],
+                "child_id": child_id,
+                "created_at": now_ms(),
+                "page_count": len(images),
                 "questions": [],
                 "levels": [],
             }
