@@ -1,32 +1,50 @@
-import { useState, useEffect } from 'react'
-import './App.css'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
+import Splash from './screens/Splash'
+import RoleSelect from './screens/RoleSelect'
+import ParentAuth from './screens/parent/ParentAuth'
+import AddChild from './screens/parent/AddChild'
+import ChildCard from './screens/parent/ChildCard'
+import Dashboard from './screens/parent/Dashboard'
+import UploadBook from './screens/parent/UploadBook'
+import Settings from './screens/parent/Settings'
+import KidScan from './screens/kid/KidScan'
+import KidHome from './screens/kid/KidHome'
+import LevelMap from './screens/kid/LevelMap'
+import Game from './screens/kid/Game'
+import LevelComplete from './screens/kid/LevelComplete'
+import Battle from './screens/kid/Battle'
+import Leaderboard from './screens/kid/Leaderboard'
+import Profile from './screens/kid/Profile'
 
-function App() {
-  const [message, setMessage] = useState<string>('')
-  const [health, setHealth] = useState<string>('')
-
-  useEffect(() => {
-    // Test API connection
-    fetch('/api/')
-      .then(res => res.json())
-      .then(data => setMessage(data.message))
-      .catch(err => console.error('API Error:', err))
-
-    fetch('/api/health')
-      .then(res => res.json())
-      .then(data => setHealth(data.status))
-      .catch(err => console.error('Health check error:', err))
-  }, [])
-
+export default function App() {
+  const location = useLocation()
   return (
-    <div className="App">
-      <h1>NaniGo</h1>
-      <div className="card">
-        <p>Backend API: {message || 'Loading...'}</p>
-        <p>Health Status: {health || 'Checking...'}</p>
-      </div>
-    </div>
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<Splash />} />
+        <Route path="/role" element={<RoleSelect />} />
+
+        {/* Parent */}
+        <Route path="/parent/auth" element={<ParentAuth />} />
+        <Route path="/parent/add-child" element={<AddChild />} />
+        <Route path="/parent/child/:id/card" element={<ChildCard />} />
+        <Route path="/parent/dashboard" element={<Dashboard />} />
+        <Route path="/parent/upload" element={<UploadBook />} />
+        <Route path="/parent/settings" element={<Settings />} />
+
+        {/* Kid */}
+        <Route path="/kid/scan" element={<KidScan />} />
+        <Route path="/kid/home" element={<KidHome />} />
+        <Route path="/kid/map/:packId" element={<LevelMap />} />
+        <Route path="/kid/play/:packId/:seq" element={<Game />} />
+        <Route path="/kid/complete" element={<LevelComplete />} />
+        <Route path="/kid/battle" element={<Battle />} />
+        <Route path="/kid/leaderboard" element={<Leaderboard />} />
+        <Route path="/kid/profile" element={<Profile />} />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
   )
 }
-
-export default App
