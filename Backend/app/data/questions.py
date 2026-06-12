@@ -149,6 +149,25 @@ def _mcq(*args, **kwargs):
     return q
 
 
+def _speak(text, answer, accept, explanation, text_np=None):
+    """Voice-answer question: the child hears it and says the answer aloud."""
+    _counter["n"] += 1
+    return {
+        "id": f"q{_counter['n']}",
+        "kind": "speak",
+        "text": text,
+        "text_np": text_np,
+        "options": [],
+        "correct_index": 0,
+        "explanation": explanation,
+        "figure": None,
+        "pairs": None,
+        "sequence": None,
+        "answer": answer,
+        "accept": accept,
+    }
+
+
 # A mixed "Fun Puzzles" pack showcasing match + order + mcq interactions.
 PUZZLE_QUESTIONS = [
     _order("Order the numbers from smallest to biggest", ["1", "2", "3", "4"], "1 is smallest, 4 is biggest."),
@@ -166,6 +185,8 @@ PUZZLE_QUESTIONS = [
     _mcq("How many sides does a pentagon have?", ["3", "4", "5", "6"], 2, "A pentagon has 5 sides."),
     _order("Order the seasons starting from spring", ["Spring", "Summer", "Autumn", "Winter"], "Seasons cycle through the year."),
     _match("Match the body part to its use", [("Eyes", "See"), ("Ears", "Hear"), ("Nose", "Smell"), ("Tongue", "Taste")], "Each body part has a job."),
+    _speak("Say the answer out loud: What is two plus two?", "four", ["4", "four", "char", "चार"], "Two and two make four."),
+    _speak("Say it out loud: What color is the sky on a sunny day?", "blue", ["blue", "nilo", "निलो"], "The sky is blue on a clear day."),
 ]
 
 
@@ -176,6 +197,7 @@ MATH_PUZZLES = [
     _order("Order these numbers", ["2", "4", "6", "8"], "Counting by twos."),
     _match("Match the number to its double", [("2", "4"), ("3", "6"), ("4", "8"), ("5", "10")], "Double means add it to itself."),
     _order("Arrange from lightest to heaviest", ["Feather", "Apple", "Brick", "Car"], "A feather is lightest of all."),
+    _speak("Say the answer out loud: What is five plus five?", "ten", ["10", "ten", "das", "दश"], "Five and five make ten."),
 ]
 
 NEPALI_PUZZLES = [
@@ -184,6 +206,7 @@ NEPALI_PUZZLES = [
     _match("Match the color word", [("रातो", "Red"), ("हरियो", "Green"), ("निलो", "Blue"), ("पहेंलो", "Yellow")], "Colors in Nepali."),
     _order("Order the numbers in Nepali", ["एक", "दुई", "तीन", "चार"], "One, two, three, four."),
     _match("Match the body part", [("हात", "Hand"), ("आँखा", "Eye"), ("कान", "Ear"), ("नाक", "Nose")], "Body parts in Nepali."),
+    _speak("Say it out loud: What is the Nepali word for water?", "पानी", ["pani", "paani", "पानी", "water"], "पानी means water."),
 ]
 
 SCIENCE_PUZZLES = [
@@ -192,6 +215,7 @@ SCIENCE_PUZZLES = [
     _match("Match the body part to its sense", [("Eyes", "See"), ("Ears", "Hear"), ("Nose", "Smell"), ("Tongue", "Taste")], "Each sense organ has a job."),
     _order("Order the planets from the Sun", ["Mercury", "Venus", "Earth", "Mars"], "Closest to farthest from the Sun."),
     _match("Match the animal to its home", [("Bird", "Nest"), ("Bee", "Hive"), ("Dog", "Kennel"), ("Fish", "Water")], "Where animals live."),
+    _speak("Say the answer out loud: What do bees make?", "honey", ["honey", "maha", "मह"], "Bees make sweet honey."),
 ]
 
 

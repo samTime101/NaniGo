@@ -7,6 +7,7 @@ import Mascot from '../../components/Mascot'
 import Figure from '../../components/Figure'
 import MatchQuestion from '../../components/MatchQuestion'
 import OrderQuestion from '../../components/OrderQuestion'
+import SpeakQuestion from '../../components/SpeakQuestion'
 import { useGame } from '../../store/GameStore'
 import { api } from '../../lib/api'
 import { burst, cue } from '../../lib/confetti'
@@ -129,7 +130,9 @@ export default function Game() {
       ? 'Match the pairs · जोडा मिलाउनुहोस्'
       : kind === 'order'
         ? 'Drag into order · क्रम मिलाउनुहोस्'
-        : null
+        : kind === 'speak'
+          ? 'Say it out loud · बोलेर भन्नुहोस्'
+          : null
 
   return (
     <Screen>
@@ -256,6 +259,19 @@ export default function Game() {
                   sequence={q.sequence}
                   disabled={!!answered}
                   onResult={(correct) => resolve(correct, 'order')}
+                />
+              )}
+
+              {kind === 'speak' && (
+                <SpeakQuestion
+                  key={q.id}
+                  packId={pack.id}
+                  questionId={q.id}
+                  questionText={q.text}
+                  disabled={!!answered}
+                  onResult={(correct, transcript) =>
+                    resolve(correct, transcript || 'speak')
+                  }
                 />
               )}
 

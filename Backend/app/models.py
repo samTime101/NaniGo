@@ -11,7 +11,7 @@ SubjectId = Literal["math", "nepali", "science", "english"]
 PackType = Literal["default", "personalized"]
 PackStatus = Literal["generating", "ready", "failed"]
 FigureId = Literal["rectangle", "triangle", "circle", "square", "star"]
-QuestionKind = Literal["mcq", "match", "order"]
+QuestionKind = Literal["mcq", "match", "order", "speak"]
 
 
 # ---------- Questions / packs ----------
@@ -33,6 +33,9 @@ class Question(BaseModel):
     pairs: Optional[list[MatchPair]] = None
     # order (drag & drop) — the correct sequence of items
     sequence: Optional[list[str]] = None
+    # speak (voice answer) — the expected spoken answer + acceptable variants
+    answer: Optional[str] = None
+    accept: Optional[list[str]] = None
 
 
 class Level(BaseModel):

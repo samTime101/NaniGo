@@ -10,7 +10,7 @@ export type AvatarId =
 
 export type SubjectId = 'math' | 'nepali' | 'science' | 'english';
 
-export type QuestionKind = 'mcq' | 'match' | 'order';
+export type QuestionKind = 'mcq' | 'match' | 'order' | 'speak';
 
 export interface MatchPair {
   left: string;
@@ -28,6 +28,8 @@ export interface Question {
   figure?: 'rectangle' | 'triangle' | 'circle' | 'square' | 'star';
   pairs?: MatchPair[];
   sequence?: string[];
+  answer?: string;
+  accept?: string[];
 }
 
 export interface Attempt {

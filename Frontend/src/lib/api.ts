@@ -72,6 +72,8 @@ type RawQuestion = {
   figure?: Question['figure'] | null;
   pairs?: { left: string; right: string }[] | null;
   sequence?: string[] | null;
+  answer?: string | null;
+  accept?: string[] | null;
 };
 
 type RawLevel = { id: string; sequence_no: number; question_ids: string[] };
@@ -122,6 +124,8 @@ function toQuestion(q: RawQuestion): Question {
     figure: q.figure ?? undefined,
     pairs: q.pairs ?? undefined,
     sequence: q.sequence ?? undefined,
+    answer: q.answer ?? undefined,
+    accept: q.accept ?? undefined,
   };
 }
 
@@ -301,6 +305,34 @@ export const api = {
       system_prompt: string;
       first_message: string;
     }>(`/tutor/session${qs}`);
+  },
+
+  // speech (voice-answer questions)
+  // Fetch spoken audio (MP3) for a question and return a playable object URL.
+  async speechTtsUrl(text: string): Promise<string> {
+    const res = await fetch(`${BASE}/speech/tts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new ApiError(res.status, 'TTS failed');
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  },
+
+  // Transcribe + grade a recorded spoken answer.
+  async gradeSpeech(packId: string, questionId: string, audio: Blob) {
+    const fd = new FormData();
+    fd.append('pack_id', packId);
+    fd.append('question_id', questionId);
+    const ext = audio.type.includes('mp4') ? 'mp4' : 'webm';
+    fd.append('file', audio, `answer.${ext}`);
+    return request<{
+      transcript: string;
+      correct: boolean;
+      expected: string;
+      feedback: string;
+    }>('/speech/grade', { method: 'POST', body: fd });
   },
 
   // uploads (parent, auth, multipart)

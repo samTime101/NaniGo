@@ -11,6 +11,7 @@ import {
   ListOrdered,
   HelpCircle,
   Lightbulb,
+  Mic,
 } from 'lucide-react'
 import { Screen, Loading } from '../../components/ui'
 import { ParentNav } from '../../components/KidChrome'
@@ -164,6 +165,7 @@ function KindBadge({ kind }: { kind: Question['kind'] }) {
     mcq: { icon: HelpCircle, label: 'Choice', c: 'text-teal bg-teal/10' },
     match: { icon: Shuffle, label: 'Match', c: 'text-orange bg-orange/10' },
     order: { icon: ListOrdered, label: 'Order', c: 'text-success bg-success/10' },
+    speak: { icon: Mic, label: 'Speak', c: 'text-heart bg-heart/10' },
   }
   const m = map[kind ?? 'mcq']
   const Icon = m.icon
@@ -235,6 +237,14 @@ function QuestionView({ q, n }: { q: Question; n: number }) {
               )}
             </span>
           ))}
+        </div>
+      )}
+
+      {kind === 'speak' && (
+        <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold">
+          <Mic size={15} className="shrink-0 text-heart" />
+          <span className="text-[#666]">Answer aloud:</span>
+          <span className="text-success">{q.answer}</span>
         </div>
       )}
 

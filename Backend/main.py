@@ -8,6 +8,7 @@ from app.routers import (
     children,
     leaderboard,
     packs,
+    speech,
     tutor,
     uploads,
 )
@@ -29,6 +30,7 @@ app.include_router(children.router, prefix=api)
 app.include_router(packs.router, prefix=api)
 app.include_router(uploads.router, prefix=api)
 app.include_router(tutor.router, prefix=api)
+app.include_router(speech.router, prefix=api)
 app.include_router(battles.router, prefix=api)
 app.include_router(leaderboard.router, prefix=api)
 

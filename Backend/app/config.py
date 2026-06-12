@@ -43,6 +43,18 @@ class Settings:
     ELEVENLABS_API_KEY: str = os.getenv("ELEVENLABS_API_KEY", "")
     ELEVENLABS_AGENT_ID: str = os.getenv("ELEVENLABS_AGENT_ID", "")
 
+    # Voice used to read out "speak" questions, and the speech-to-text model
+    # used to transcribe the child's spoken answer for grading.
+    ELEVENLABS_TTS_VOICE_ID: str = os.getenv(
+        "ELEVENLABS_TTS_VOICE_ID", "cjVigY5qzO86Huf0OWal"
+    )
+    ELEVENLABS_TTS_MODEL_ID: str = os.getenv(
+        "ELEVENLABS_TTS_MODEL_ID", "eleven_multilingual_v2"
+    )
+    ELEVENLABS_STT_MODEL_ID: str = os.getenv(
+        "ELEVENLABS_STT_MODEL_ID", "scribe_v1"
+    )
+
     HEART_REFILL_MINUTES: int = int(os.getenv("HEART_REFILL_MINUTES", "5"))
 
     # SQLite database file (relative to the Backend folder by default).

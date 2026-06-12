@@ -21,9 +21,11 @@ SYSTEM_PROMPT = (
     "contain Devanagari / Nepali text. Extract the educational content and "
     "generate exactly 15 fun questions for a {age}-year-old child in class "
     "{grade} studying {subject}. Mix the question types for variety:\n"
-    "- about 9 'mcq' (multiple choice, 4 options)\n"
-    "- about 3 'match' (match-the-following with 3-4 pairs)\n"
-    "- about 3 'order' (put 3-4 items in the correct order)\n"
+    "- about 8 'mcq' (multiple choice, 4 options)\n"
+    "- about 2 'match' (match-the-following with 3-4 pairs)\n"
+    "- about 2 'order' (put 3-4 items in the correct order)\n"
+    "- about 3 'speak' (the child hears the question and answers OUT LOUD "
+    "with their voice; the answer should be a short word or phrase)\n"
     "Keep language simple and kid-friendly. Return STRICT JSON only:\n"
     '{{"questions": [\n'
     '  {{"kind":"mcq","text":"...","options":["a","b","c","d"],'
@@ -31,7 +33,9 @@ SYSTEM_PROMPT = (
     '  {{"kind":"match","text":"Match ...","pairs":[{{"left":"..","right":".."}}],'
     '"explanation":"..."}},\n'
     '  {{"kind":"order","text":"Put in order ...","sequence":["first","second","third"],'
-    '"explanation":"..."}}\n'
+    '"explanation":"..."}},\n'
+    '  {{"kind":"speak","text":"Say the answer out loud: what is 2 plus 2?",'
+    '"answer":"four","accept":["4","four","char"],"explanation":"..."}}\n'
     "]}}"
 )
 
@@ -107,6 +111,31 @@ def _norm_order(q: dict) -> dict | None:
             "figure": None,
             "pairs": None,
             "sequence": [str(s) for s in seq],
+            "answer": None,
+            "accept": None,
+        }
+    return None
+
+
+def _norm_speak(q: dict) -> dict | None:
+    answer = q.get("answer")
+    if isinstance(q.get("text"), str) and isinstance(answer, (str, int, float)):
+        accept = q.get("accept")
+        accept_list = (
+            [str(a) for a in accept] if isinstance(accept, list) else None
+        )
+        return {
+            "kind": "speak",
+            "text": q["text"],
+            "text_np": q.get("text_np"),
+            "options": [],
+            "correct_index": 0,
+            "explanation": q.get("explanation", ""),
+            "figure": None,
+            "pairs": None,
+            "sequence": None,
+            "answer": str(answer),
+            "accept": accept_list,
         }
     return None
 
@@ -120,6 +149,8 @@ def _validate(payload: dict) -> list[dict]:
             if kind == "match"
             else _norm_order(q)
             if kind == "order"
+            else _norm_speak(q)
+            if kind == "speak"
             else _norm_mcq(q)
         )
         if norm:
@@ -227,3 +258,74 @@ def generate_questions(
         print(f"[ai] Gemini generation failed, using fallback: {exc}")
 
     return _fallback_questions(subject, age, grade)
+
+
+def _normalize(s: str) -> str:
+    return "".join(c for c in s.lower().strip() if c.isalnum() or c.isspace())
+
+
+def _fallback_grade(
+    expected: str, accept: list[str] | None, transcript: str
+) -> tuple[bool, str]:
+    t = _normalize(transcript)
+    candidates = [expected] + (accept or [])
+    for c in candidates:
+        cn = _normalize(c)
+        if cn and (cn in t or t in cn):
+            return True, "Great job! That's right!"
+    return False, f"Good try! The answer was \"{expected}\"."
+
+
+def grade_spoken_answer(
+    question: str,
+    expected: str,
+    accept: list[str] | None,
+    transcript: str,
+) -> tuple[bool, str]:
+    """Decide whether a child's spoken (transcribed) answer is correct.
+
+    Uses Gemini for lenient grading (tolerates pronunciation, spelling, extra
+    words, English/Nepali) and falls back to fuzzy string matching offline.
+    Returns (correct, short_feedback). Never raises.
+    """
+    if not transcript.strip():
+        return False, "I didn't catch that. Try speaking again!"
+
+    if not settings.GEMINI_API_KEY:
+        return _fallback_grade(expected, accept, transcript)
+
+    try:
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        prompt = (
+            "You grade a young child's spoken answer in a learning game. Be "
+            "encouraging and lenient about spelling, pronunciation, extra "
+            "words, and language (English or Nepali / Devanagari).\n"
+            f"Question: {question}\n"
+            f"Correct answer: {expected}\n"
+            f"Also acceptable: {', '.join(accept) if accept else '(none)'}\n"
+            f"The child said (speech-to-text, may have errors): {transcript}\n"
+            'Return STRICT JSON only: {"correct": true or false, '
+            '"feedback": "one short, warm sentence for the child"}'
+        )
+        response = client.models.generate_content(
+            model=settings.GEMINI_MODEL,
+            contents=[prompt],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.2,
+            ),
+        )
+        data = json.loads((response.text or "").strip())
+        correct = bool(data.get("correct"))
+        feedback = str(data.get("feedback") or "").strip()
+        if not feedback:
+            feedback = (
+                "Great job!" if correct else f'The answer was "{expected}".'
+            )
+        return correct, feedback
+    except Exception as exc:  # pragma: no cover - network/SDK errors
+        print(f"[ai] spoken grading failed, using fallback: {exc}")
+        return _fallback_grade(expected, accept, transcript)
