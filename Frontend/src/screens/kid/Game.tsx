@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { X, Heart, HeartCrack } from 'lucide-react'
 import { Screen, Button, Loading } from '../../components/ui'
 import Mascot from '../../components/Mascot'
 import Figure from '../../components/Figure'
+import MatchQuestion from '../../components/MatchQuestion'
+import OrderQuestion from '../../components/OrderQuestion'
 import { useGame } from '../../store/GameStore'
+import { api } from '../../lib/api'
 import { burst, cue } from '../../lib/confetti'
 
 const PASTELS = ['#FFE3D6', '#D8F3F2', '#FFF3C4', '#E2F5E4']
@@ -28,24 +31,43 @@ export default function Game() {
 
   const [idx, setIdx] = useState(0)
   const [picked, setPicked] = useState<number | null>(null)
+  const [answered, setAnswered] = useState<{ correct: boolean } | null>(null)
   const [correctCount, setCorrectCount] = useState(0)
   const [showXp, setShowXp] = useState(false)
   const [shake, setShake] = useState(false)
   const [broke, setBroke] = useState(false)
   const [breakTime, setBreakTime] = useState(false)
+  const startRef = useRef<number>(Date.now())
+
+  useEffect(() => {
+    startRef.current = Date.now()
+  }, [idx])
 
   if (!ready) return <Loading />
   if (!activeChild) return <Navigate to="/kid/scan" replace />
   if (!pack || questions.length === 0) return <Navigate to="/kid/home" replace />
 
   const q = questions[idx]
+  const kind = q.kind ?? 'mcq'
 
-  const choose = (i: number) => {
-    if (picked !== null) return
-    setPicked(i)
-    const wasCorrect = i === q.correctIndex
-    const newCorrect = correctCount + (wasCorrect ? 1 : 0)
-    if (wasCorrect) {
+  const resolve = (correct: boolean, selected: string) => {
+    if (answered) return
+    setAnswered({ correct })
+    const newCorrect = correctCount + (correct ? 1 : 0)
+
+    // log this attempt (timing + correctness) for the parent dashboard
+    api
+      .logAttempt(activeChild.id, {
+        packId: pack.id,
+        questionId: q.id,
+        sequenceNo: Number(seq),
+        correct,
+        timeMs: Date.now() - startRef.current,
+        selected,
+      })
+      .catch(() => {})
+
+    if (correct) {
       cue('correct')
       burst()
       setShowXp(true)
@@ -60,11 +82,17 @@ export default function Game() {
       setTimeout(() => setShake(false), 450)
       setTimeout(() => setBroke(false), 900)
       if (activeChild.hearts - 1 <= 0) {
-        setTimeout(() => setBreakTime(true), 1300)
+        setTimeout(() => setBreakTime(true), 1500)
       } else {
-        setTimeout(() => next(newCorrect), 2200)
+        setTimeout(() => next(newCorrect), 2400)
       }
     }
+  }
+
+  const chooseMcq = (i: number) => {
+    if (answered) return
+    setPicked(i)
+    resolve(i === q.correctIndex, q.options[i])
   }
 
   const next = async (finalCorrect: number) => {
@@ -88,12 +116,20 @@ export default function Game() {
     } else {
       setIdx((i) => i + 1)
       setPicked(null)
+      setAnswered(null)
     }
   }
 
   if (breakTime) {
     return <BreakScreen onHome={() => nav('/kid/home')} />
   }
+
+  const kindLabel =
+    kind === 'match'
+      ? 'Match the pairs · जोडा मिलाउनुहोस्'
+      : kind === 'order'
+        ? 'Drag into order · क्रम मिलाउनुहोस्'
+        : null
 
   return (
     <Screen>
@@ -142,7 +178,12 @@ export default function Game() {
               exit={{ opacity: 0, x: -40 }}
               className="flex flex-1 flex-col"
             >
-              <div className="mt-2 rounded-3xl bg-white p-6 text-center shadow-sm">
+              <div className="relative mt-2 rounded-3xl bg-white p-6 text-center shadow-sm">
+                {kindLabel && (
+                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-orange px-3 py-0.5 text-xs font-bold text-white">
+                    {kindLabel}
+                  </span>
+                )}
                 {q.figure && (
                   <div className="mb-3 flex justify-center">
                     <Figure kind={q.figure} />
@@ -154,52 +195,73 @@ export default function Game() {
                 )}
               </div>
 
-              {/* answers */}
-              <div className="relative mt-5 grid grid-cols-2 gap-3">
+              {/* floating XP */}
+              <div className="relative">
                 <AnimatePresence>
                   {showXp && (
                     <motion.div
                       initial={{ opacity: 0, y: 0 }}
                       animate={{ opacity: 1, y: -50 }}
                       exit={{ opacity: 0 }}
-                      className="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 text-3xl font-extrabold text-gold drop-shadow"
+                      className="pointer-events-none absolute left-1/2 top-2 z-10 -translate-x-1/2 text-3xl font-extrabold text-gold drop-shadow"
                     >
                       +10 XP
                     </motion.div>
                   )}
                 </AnimatePresence>
-
-                {q.options.map((opt, i) => {
-                  const isCorrect = i === q.correctIndex
-                  const isPicked = picked === i
-                  let style = ''
-                  if (picked !== null) {
-                    if (isCorrect) style = 'bg-success text-white'
-                    else if (isPicked) style = 'bg-heart text-white'
-                    else style = 'opacity-50'
-                  }
-                  return (
-                    <motion.button
-                      key={i}
-                      whileTap={{ scale: 0.95 }}
-                      animate={isPicked && shake ? { x: [0, -8, 8, -6, 6, 0] } : {}}
-                      onClick={() => choose(i)}
-                      style={
-                        picked === null
-                          ? { background: PASTELS[i], color: PASTEL_TEXT[i] }
-                          : undefined
-                      }
-                      className={`flex min-h-[88px] items-center justify-center rounded-3xl p-3 text-center text-xl font-extrabold shadow-[0_5px_0_0_rgba(0,0,0,0.08)] ${style}`}
-                    >
-                      {opt}
-                    </motion.button>
-                  )
-                })}
               </div>
+
+              {/* answer area by kind */}
+              {kind === 'mcq' && (
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  {q.options.map((opt, i) => {
+                    const isCorrect = i === q.correctIndex
+                    const isPicked = picked === i
+                    let style = ''
+                    if (answered) {
+                      if (isCorrect) style = 'bg-success text-white'
+                      else if (isPicked) style = 'bg-heart text-white'
+                      else style = 'opacity-50'
+                    }
+                    return (
+                      <motion.button
+                        key={i}
+                        whileTap={{ scale: 0.95 }}
+                        animate={isPicked && shake ? { x: [0, -8, 8, -6, 6, 0] } : {}}
+                        onClick={() => chooseMcq(i)}
+                        style={
+                          !answered
+                            ? { background: PASTELS[i], color: PASTEL_TEXT[i] }
+                            : undefined
+                        }
+                        className={`flex min-h-[88px] items-center justify-center rounded-3xl p-3 text-center text-xl font-extrabold shadow-[0_5px_0_0_rgba(0,0,0,0.08)] ${style}`}
+                      >
+                        {opt}
+                      </motion.button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {kind === 'match' && q.pairs && (
+                <MatchQuestion
+                  pairs={q.pairs}
+                  disabled={!!answered}
+                  onResult={(correct) => resolve(correct, 'match')}
+                />
+              )}
+
+              {kind === 'order' && q.sequence && (
+                <OrderQuestion
+                  sequence={q.sequence}
+                  disabled={!!answered}
+                  onResult={(correct) => resolve(correct, 'order')}
+                />
+              )}
 
               {/* explanation on wrong */}
               <AnimatePresence>
-                {picked !== null && picked !== q.correctIndex && (
+                {answered && !answered.correct && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}

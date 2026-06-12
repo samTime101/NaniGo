@@ -11,17 +11,28 @@ SubjectId = Literal["math", "nepali", "science", "english"]
 PackType = Literal["default", "personalized"]
 PackStatus = Literal["generating", "ready", "failed"]
 FigureId = Literal["rectangle", "triangle", "circle", "square", "star"]
+QuestionKind = Literal["mcq", "match", "order"]
 
 
 # ---------- Questions / packs ----------
+class MatchPair(BaseModel):
+    left: str
+    right: str
+
+
 class Question(BaseModel):
     id: str
+    kind: QuestionKind = "mcq"
     text: str
     text_np: Optional[str] = None
-    options: list[str]
-    correct_index: int
-    explanation: str
+    options: list[str] = []
+    correct_index: int = 0
+    explanation: str = ""
     figure: Optional[FigureId] = None
+    # match-the-following
+    pairs: Optional[list[MatchPair]] = None
+    # order (drag & drop) — the correct sequence of items
+    sequence: Optional[list[str]] = None
 
 
 class Level(BaseModel):
@@ -179,3 +190,28 @@ class LeaderboardEntry(BaseModel):
     xp: int
     grade: int
     is_current: bool = False
+
+
+# ---------- Per-question attempt logs ----------
+class AttemptCreate(BaseModel):
+    pack_id: str
+    question_id: str
+    sequence_no: int = 0
+    correct: bool
+    time_ms: int
+    selected: Optional[str] = None
+
+
+class Attempt(BaseModel):
+    id: str
+    child_id: str
+    pack_id: str
+    pack_title: str
+    subject: SubjectId
+    question_id: str
+    question_text: str
+    kind: QuestionKind
+    correct: bool
+    time_ms: int
+    selected: Optional[str] = None
+    at: int

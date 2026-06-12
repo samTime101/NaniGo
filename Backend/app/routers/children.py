@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from ..deps import get_current_parent
 from ..models import (
+    Attempt,
+    AttemptCreate,
     Child,
     ChildCreate,
     LevelAttempt,
@@ -137,3 +139,41 @@ def refill_hearts(child_id: str):
         child["hearts_refill_at"] = None
         store.save_child(child)
     return Child(**child)
+
+
+# ---------- Per-question attempt logging ----------
+@router.post("/kid/{child_id}/attempt", response_model=Attempt)
+def log_attempt(child_id: str, body: AttemptCreate):
+    child = store.children.get(child_id)
+    if not child:
+        raise HTTPException(status_code=404, detail="Child not found")
+    pack = store.packs.get(body.pack_id)
+    question = None
+    if pack:
+        question = next(
+            (q for q in pack["questions"] if q["id"] == body.question_id), None
+        )
+    attempt = {
+        "id": uid(),
+        "child_id": child_id,
+        "pack_id": body.pack_id,
+        "pack_title": pack["title"] if pack else "Unknown",
+        "subject": pack["subject"] if pack else "math",
+        "question_id": body.question_id,
+        "question_text": question["text"] if question else "",
+        "kind": question.get("kind", "mcq") if question else "mcq",
+        "correct": body.correct,
+        "time_ms": body.time_ms,
+        "selected": body.selected,
+        "at": now_ms(),
+    }
+    store.add_attempt(attempt)
+    return Attempt(**attempt)
+
+
+@router.get("/children/{child_id}/attempts", response_model=list[Attempt])
+def get_attempts(child_id: str, parent: dict = Depends(get_current_parent)):
+    _owned_child(child_id, parent["id"])
+    attempts = store.attempts_for_child(child_id)
+    # newest first
+    return [Attempt(**a) for a in sorted(attempts, key=lambda a: a["at"], reverse=True)]

@@ -10,14 +10,39 @@ export type AvatarId =
 
 export type SubjectId = 'math' | 'nepali' | 'science' | 'english';
 
+export type QuestionKind = 'mcq' | 'match' | 'order';
+
+export interface MatchPair {
+  left: string;
+  right: string;
+}
+
 export interface Question {
   id: string;
+  kind?: QuestionKind;
   text: string;
   textNp?: string;
   options: string[];
   correctIndex: number;
   explanation: string;
   figure?: 'rectangle' | 'triangle' | 'circle' | 'square' | 'star';
+  pairs?: MatchPair[];
+  sequence?: string[];
+}
+
+export interface Attempt {
+  id: string;
+  childId: string;
+  packId: string;
+  packTitle: string;
+  subject: SubjectId;
+  questionId: string;
+  questionText: string;
+  kind: QuestionKind;
+  correct: boolean;
+  timeMs: number;
+  selected?: string;
+  at: number;
 }
 
 export interface Level {

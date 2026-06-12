@@ -20,6 +20,15 @@ class Settings:
         "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173",
     ).split(",")
 
+    # Regex allowing localhost + private LAN ranges on any port, so devices
+    # on the same Wi-Fi (phones/tablets) can call the API directly.
+    CORS_ORIGIN_REGEX: str = os.getenv(
+        "CORS_ORIGIN_REGEX",
+        r"http://(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|"
+        r"192\.168\.\d{1,3}\.\d{1,3}|"
+        r"172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?",
+    )
+
     # Gemini powers the "Upload Book Pages" OCR + question pipeline.
     # When no key is present the backend falls back to a deterministic
     # generator so the whole app stays demo-ready offline.

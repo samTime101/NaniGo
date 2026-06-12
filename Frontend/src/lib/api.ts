@@ -1,9 +1,11 @@
 import type {
   AvatarId,
+  Attempt,
   Child,
   LeaderboardEntry,
   Parent,
   Question,
+  QuestionKind,
   QuestionPack,
   SubjectId,
 } from '../types';
@@ -61,12 +63,15 @@ async function request<T>(
 // ---------- converters (snake_case API -> camelCase app) ----------
 type RawQuestion = {
   id: string;
+  kind?: QuestionKind;
   text: string;
   text_np?: string | null;
   options: string[];
   correct_index: number;
   explanation: string;
   figure?: Question['figure'] | null;
+  pairs?: { left: string; right: string }[] | null;
+  sequence?: string[] | null;
 };
 
 type RawLevel = { id: string; sequence_no: number; question_ids: string[] };
@@ -107,12 +112,15 @@ type RawChild = {
 function toQuestion(q: RawQuestion): Question {
   return {
     id: q.id,
+    kind: q.kind ?? 'mcq',
     text: q.text,
     textNp: q.text_np ?? undefined,
     options: q.options,
     correctIndex: q.correct_index,
     explanation: q.explanation,
     figure: q.figure ?? undefined,
+    pairs: q.pairs ?? undefined,
+    sequence: q.sequence ?? undefined,
   };
 }
 
@@ -303,6 +311,64 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ child_id: childId, subject }),
     });
+  },
+
+  // attempts
+  async logAttempt(
+    childId: string,
+    input: {
+      packId: string;
+      questionId: string;
+      sequenceNo: number;
+      correct: boolean;
+      timeMs: number;
+      selected?: string;
+    },
+  ) {
+    return request(`/kid/${childId}/attempt`, {
+      method: 'POST',
+      body: JSON.stringify({
+        pack_id: input.packId,
+        question_id: input.questionId,
+        sequence_no: input.sequenceNo,
+        correct: input.correct,
+        time_ms: input.timeMs,
+        selected: input.selected,
+      }),
+    });
+  },
+
+  async getAttempts(childId: string): Promise<Attempt[]> {
+    const raw = await request<
+      {
+        id: string;
+        child_id: string;
+        pack_id: string;
+        pack_title: string;
+        subject: SubjectId;
+        question_id: string;
+        question_text: string;
+        kind: QuestionKind;
+        correct: boolean;
+        time_ms: number;
+        selected?: string | null;
+        at: number;
+      }[]
+    >(`/children/${childId}/attempts`, {}, true);
+    return raw.map((a) => ({
+      id: a.id,
+      childId: a.child_id,
+      packId: a.pack_id,
+      packTitle: a.pack_title,
+      subject: a.subject,
+      questionId: a.question_id,
+      questionText: a.question_text,
+      kind: a.kind,
+      correct: a.correct,
+      timeMs: a.time_ms,
+      selected: a.selected ?? undefined,
+      at: a.at,
+    }));
   },
 
   // leaderboard

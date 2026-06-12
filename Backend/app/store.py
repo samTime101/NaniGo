@@ -18,7 +18,7 @@ import time
 import uuid
 
 from .config import settings
-from .data.questions import SUBJECT_BANK
+from .data.questions import PUZZLE_QUESTIONS, SUBJECT_BANK
 
 _lock = threading.RLock()
 
@@ -80,6 +80,7 @@ class Store:
         self.tokens: dict[str, str] = {}
         self.children: dict[str, dict] = {}
         self.packs: dict[str, dict] = {}
+        self.attempts: list[dict] = []
         self.battles: dict[str, dict] = {}  # ephemeral, not persisted
 
         self._load()
@@ -108,6 +109,12 @@ class Store:
                     id TEXT PRIMARY KEY,
                     data TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS attempts (
+                    id TEXT PRIMARY KEY,
+                    child_id TEXT NOT NULL,
+                    at INTEGER NOT NULL,
+                    data TEXT NOT NULL
+                );
                 """
             )
             self._conn.commit()
@@ -124,6 +131,10 @@ class Store:
             self.children[row["id"]] = json.loads(row["data"])
         for row in cur.execute("SELECT id, data FROM packs"):
             self.packs[row["id"]] = json.loads(row["data"])
+        for row in cur.execute(
+            "SELECT data FROM attempts ORDER BY at ASC"
+        ):
+            self.attempts.append(json.loads(row["data"]))
 
     # ---------- persistence helpers ----------
     def save_parent(self, parent: dict, password: str | None = None) -> None:
@@ -187,6 +198,18 @@ class Store:
                 self._conn.execute("DELETE FROM packs WHERE id = ?", (pid,))
             self._conn.commit()
 
+    def add_attempt(self, attempt: dict) -> None:
+        with _lock:
+            self.attempts.append(attempt)
+            self._conn.execute(
+                "INSERT INTO attempts (id, child_id, at, data) VALUES (?, ?, ?, ?)",
+                (attempt["id"], attempt["child_id"], attempt["at"], json.dumps(attempt)),
+            )
+            self._conn.commit()
+
+    def attempts_for_child(self, child_id: str) -> list[dict]:
+        return [a for a in self.attempts if a["child_id"] == child_id]
+
     # ---------- seeding ----------
     def _seed(self) -> None:
         self.save_pack(
@@ -197,6 +220,22 @@ class Store:
         )
         self.save_pack(
             _default_pack("science", "Science Explorer", "विज्ञान खोज", SUBJECT_BANK["science"])
+        )
+        # Mixed interactive pack: match-the-following, order (drag&drop), mcq.
+        puzzles_id = "default-puzzles"
+        self.save_pack(
+            {
+                "id": puzzles_id,
+                "title": "Fun Puzzles",
+                "title_np": "रमाइलो पजल",
+                "subject": "math",
+                "type": "default",
+                "status": "ready",
+                "grade": 2,
+                "created_by": None,
+                "questions": PUZZLE_QUESTIONS,
+                "levels": _build_levels(puzzles_id, PUZZLE_QUESTIONS, 5, 3),
+            }
         )
 
         parent_id = "parent-1"

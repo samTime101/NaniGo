@@ -108,3 +108,61 @@ SUBJECT_BANK = {
     "nepali": NEPALI_QUESTIONS,
     "science": SCIENCE_QUESTIONS,
 }
+
+
+def _match(text, pairs, explanation, text_np=None):
+    _counter["n"] += 1
+    return {
+        "id": f"q{_counter['n']}",
+        "kind": "match",
+        "text": text,
+        "text_np": text_np,
+        "options": [],
+        "correct_index": 0,
+        "explanation": explanation,
+        "figure": None,
+        "pairs": [{"left": l, "right": r} for l, r in pairs],
+        "sequence": None,
+    }
+
+
+def _order(text, sequence, explanation, text_np=None):
+    _counter["n"] += 1
+    return {
+        "id": f"q{_counter['n']}",
+        "kind": "order",
+        "text": text,
+        "text_np": text_np,
+        "options": [],
+        "correct_index": 0,
+        "explanation": explanation,
+        "figure": None,
+        "pairs": None,
+        "sequence": sequence,
+    }
+
+
+def _mcq(*args, **kwargs):
+    q = _q(*args, **kwargs)
+    q["kind"] = "mcq"
+    return q
+
+
+# A mixed "Fun Puzzles" pack showcasing match + order + mcq interactions.
+PUZZLE_QUESTIONS = [
+    _order("Order the numbers from smallest to biggest", ["1", "2", "3", "4"], "1 is smallest, 4 is biggest."),
+    _match("Match the shape to its number of sides", [("Triangle", "3"), ("Square", "4"), ("Pentagon", "5"), ("Circle", "0")], "Each shape has its own sides!"),
+    _mcq("Which number is the biggest?", ["18", "81", "8", "1"], 1, "Eighty-one is the biggest."),
+    _order("Order these from lightest to heaviest", ["Feather", "Apple", "Cat", "Elephant"], "A feather is lightest, an elephant heaviest."),
+    _match("Match the animal to its baby", [("Dog", "Puppy"), ("Cat", "Kitten"), ("Cow", "Calf"), ("Hen", "Chick")], "Every animal has a special baby name."),
+    _order("Order the days of the week", ["Sunday", "Monday", "Tuesday", "Wednesday"], "Days go in order through the week."),
+    _match("Match the color to the fruit", [("Banana", "Yellow"), ("Apple", "Red"), ("Leaf", "Green"), ("Grape", "Purple")], "Fruits come in many colors."),
+    _mcq("What comes next: 2, 4, 6, __?", ["7", "8", "9", "10"], 1, "Count by twos: 8 comes next."),
+    _order("Order the sizes from small to big", ["Ant", "Mouse", "Dog", "Horse"], "From tiniest ant to big horse."),
+    _match("Match the number to its name", [("1", "One"), ("2", "Two"), ("3", "Three"), ("4", "Four")], "Numbers have names too!"),
+    _order("Put the morning routine in order", ["Wake up", "Brush teeth", "Eat breakfast", "Go to school"], "First wake up, then off to school."),
+    _match("Match the country to its capital", [("Nepal", "Kathmandu"), ("India", "Delhi"), ("China", "Beijing"), ("Japan", "Tokyo")], "Each country has a capital city."),
+    _mcq("How many sides does a pentagon have?", ["3", "4", "5", "6"], 2, "A pentagon has 5 sides."),
+    _order("Order the seasons starting from spring", ["Spring", "Summer", "Autumn", "Winter"], "Seasons cycle through the year."),
+    _match("Match the body part to its use", [("Eyes", "See"), ("Ears", "Hear"), ("Nose", "Smell"), ("Tongue", "Taste")], "Each body part has a job."),
+]

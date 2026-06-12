@@ -11,6 +11,8 @@ import {
   Upload,
   Star,
   BookOpen,
+  LineChart,
+  ClipboardList,
 } from 'lucide-react'
 import { Screen, Card, Loading } from '../../components/ui'
 import Avatar from '../../components/Avatar'
@@ -125,6 +127,36 @@ export default function Dashboard() {
             ))}
           </div>
         </Card>
+
+        {/* quick links to logs + question bank */}
+        <div className="mb-5 grid grid-cols-2 gap-3">
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => nav(`/parent/child/${child.id}/logs`)}
+            className="flex flex-col items-start gap-2 rounded-3xl bg-white p-4 text-left shadow-sm"
+          >
+            <div className="rounded-xl bg-orange/10 p-2 text-orange">
+              <LineChart size={24} />
+            </div>
+            <div>
+              <div className="font-extrabold text-[#333]">Progress Logs</div>
+              <div className="text-xs text-[#999]">Attempts · timing · accuracy</div>
+            </div>
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => nav('/parent/packs')}
+            className="flex flex-col items-start gap-2 rounded-3xl bg-white p-4 text-left shadow-sm"
+          >
+            <div className="rounded-xl bg-teal/10 p-2 text-teal">
+              <ClipboardList size={24} />
+            </div>
+            <div>
+              <div className="font-extrabold text-[#333]">Question Bank</div>
+              <div className="text-xs text-[#999]">Questions with answers</div>
+            </div>
+          </motion.button>
+        </div>
 
         {/* upload CTA */}
         <motion.button

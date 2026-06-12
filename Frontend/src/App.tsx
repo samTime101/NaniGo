@@ -8,6 +8,8 @@ import ChildCard from './screens/parent/ChildCard'
 import Dashboard from './screens/parent/Dashboard'
 import UploadBook from './screens/parent/UploadBook'
 import Settings from './screens/parent/Settings'
+import ChildLogs from './screens/parent/ChildLogs'
+import PackReview from './screens/parent/PackReview'
 import KidScan from './screens/kid/KidScan'
 import KidHome from './screens/kid/KidHome'
 import LevelMap from './screens/kid/LevelMap'
@@ -32,6 +34,8 @@ export default function App() {
         <Route path="/parent/dashboard" element={<Dashboard />} />
         <Route path="/parent/upload" element={<UploadBook />} />
         <Route path="/parent/settings" element={<Settings />} />
+        <Route path="/parent/packs" element={<PackReview />} />
+        <Route path="/parent/child/:id/logs" element={<ChildLogs />} />
 
         {/* Kid */}
         <Route path="/kid/scan" element={<KidScan />} />
