@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { Screen, Card, Loading } from '../../components/ui'
 import Avatar from '../../components/Avatar'
+import { ParentNav } from '../../components/KidChrome'
 import { useGame } from '../../store/GameStore'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -23,9 +24,6 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 export default function Dashboard() {
   const nav = useNavigate()
   const { children, parent, packs, ready } = useGame()
-  const latestPack = packs
-    .filter((p) => p.type === 'personalized')
-    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))[0]
   const [activeId, setActiveId] = useState(children[0]?.id)
   const child = children.find((c) => c.id === activeId) ?? children[0]
 
@@ -55,10 +53,13 @@ export default function Dashboard() {
   }
 
   const maxXp = Math.max(...child.weeklyXp, 1)
+  const childPacks = packs
+    .filter((p) => p.type === 'personalized' && p.childId === child.id)
+    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
 
   return (
     <Screen>
-      <div className="min-h-svh px-5 pb-10 pt-5">
+      <div className="min-h-svh px-5 pb-28 pt-5">
         {/* header */}
         <div className="mb-4 flex items-center justify-between">
           <img src="/nanigo_logo.png" alt="NaniGO" className="h-9" />
@@ -173,20 +174,27 @@ export default function Dashboard() {
           </div>
         </motion.button>
 
-        {/* packs */}
-        {latestPack && (
+        {/* packs for this child */}
+        {childPacks.length > 0 && (
           <div className="mb-5">
-            <div className="mb-2 font-extrabold text-[#444]">Latest Question Pack</div>
+            <div className="mb-2 font-extrabold text-[#444]">
+              {child.name}'s Question Packs
+            </div>
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm">
-                <div>
-                  <div className="font-bold text-[#333]">{latestPack.title}</div>
-                  <div className="text-sm text-[#999]">
-                    {latestPack.questions.length} questions
+              {childPacks.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm"
+                >
+                  <div>
+                    <div className="font-bold text-[#333]">{p.title}</div>
+                    <div className="text-sm text-[#999]">
+                      {p.questions.length} questions
+                    </div>
                   </div>
+                  <StatusBadge status={p.status} />
                 </div>
-                <StatusBadge status={latestPack.status} />
-              </div>
+              ))}
             </div>
           </div>
         )}
@@ -211,6 +219,7 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
+      <ParentNav />
     </Screen>
   )
 }

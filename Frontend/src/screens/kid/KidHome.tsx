@@ -25,9 +25,14 @@ export default function KidHome() {
   if (!activeChild) return <Navigate to="/kid/scan" replace />
 
   const defaultPacks = packs.filter((p) => p.type === 'default')
-  const readyPersonalized = packs
-    .filter((p) => p.type === 'personalized' && p.status === 'ready')
-    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))[0]
+  const myBooks = packs
+    .filter(
+      (p) =>
+        p.type === 'personalized' &&
+        p.status === 'ready' &&
+        p.childId === activeChild.id,
+    )
+    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
 
   return (
     <Screen>
@@ -49,14 +54,15 @@ export default function KidHome() {
         </div>
 
         <div className="flex-1 px-5 pt-5">
-          {/* My Book personalized card */}
-          {readyPersonalized && (
+          {/* My Book personalized cards (targeted to this child) */}
+          {myBooks.map((book) => (
             <motion.button
+              key={book.id}
               whileTap={{ scale: 0.97 }}
-              onClick={() => nav(`/kid/map/${readyPersonalized.id}`)}
+              onClick={() => nav(`/kid/map/${book.id}`)}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="relative mb-5 flex w-full items-center gap-4 overflow-hidden rounded-3xl bg-gradient-to-r from-gold to-orange p-5 text-left text-white shadow-[0_8px_0_0_#e6c000]"
+              className="relative mb-3 flex w-full items-center gap-4 overflow-hidden rounded-3xl bg-gradient-to-r from-gold to-orange p-5 text-left text-white shadow-[0_8px_0_0_#e6c000]"
             >
               <motion.span
                 animate={{ rotate: [0, 20, -20, 0], scale: [1, 1.2, 1] }}
@@ -65,16 +71,17 @@ export default function KidHome() {
                 <Sparkles size={36} />
               </motion.span>
               <div>
-                <div className="text-xl font-extrabold">My Book</div>
+                <div className="text-xl font-extrabold">{book.title}</div>
                 <div className="text-sm font-semibold">
-                  New questions from Mom/Dad! · नयाँ प्रश्न
+                  New from {book.createdBy ?? 'Mom/Dad'}! · {book.titleNp}
                 </div>
               </div>
               <span className="absolute right-3 top-3 animate-pulse rounded-full bg-white px-2 py-0.5 text-xs font-extrabold text-orange">
                 NEW
               </span>
             </motion.button>
-          )}
+          ))}
+          {myBooks.length > 0 && <div className="mb-2" />}
 
           {/* Subjects */}
           <div className="mb-3 flex items-center gap-2">

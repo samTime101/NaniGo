@@ -1,9 +1,11 @@
 """Gemini-powered pipeline that turns uploaded textbook pages into questions.
 
 Uses a Gemini vision model to OCR the page images (including Devanagari /
-Nepali) and generate grade-appropriate MCQs in one multimodal call. If no
-GEMINI_API_KEY is configured, or the call fails, it falls back to a
-deterministic generator built from the seed bank so the feature always works.
+Nepali) and generate a MIX of grade-appropriate question types in one
+multimodal call: multiple-choice, match-the-following, and order (drag&drop).
+If no GEMINI_API_KEY is configured, or the call fails, it falls back to a
+deterministic mixed generator built from the seed bank so the feature always
+works.
 """
 
 from __future__ import annotations
@@ -11,64 +13,127 @@ from __future__ import annotations
 import json
 
 from .config import settings
-from .data.questions import SUBJECT_BANK
+from .data.questions import SUBJECT_PACK_MIXED
 
 SYSTEM_PROMPT = (
     "You are an OCR and question-writing assistant for a children's learning "
     "app in Nepal. Read the attached textbook page images carefully. They may "
     "contain Devanagari / Nepali text. Extract the educational content and "
-    "generate exactly 15 multiple-choice questions appropriate for a "
-    "{age}-year-old child in class {grade} studying {subject}.\n"
-    "Each question must have: a short 'text', exactly 4 'options', a "
-    "'correct_index' (0-3), and a one-line kid-friendly 'explanation'. "
-    "Keep language simple. Return STRICT JSON only, with this exact shape:\n"
-    '{{"questions": [{{"text": "...", "options": ["a","b","c","d"], '
-    '"correct_index": 0, "explanation": "..."}}]}}'
+    "generate exactly 15 fun questions for a {age}-year-old child in class "
+    "{grade} studying {subject}. Mix the question types for variety:\n"
+    "- about 9 'mcq' (multiple choice, 4 options)\n"
+    "- about 3 'match' (match-the-following with 3-4 pairs)\n"
+    "- about 3 'order' (put 3-4 items in the correct order)\n"
+    "Keep language simple and kid-friendly. Return STRICT JSON only:\n"
+    '{{"questions": [\n'
+    '  {{"kind":"mcq","text":"...","options":["a","b","c","d"],'
+    '"correct_index":0,"explanation":"..."}},\n'
+    '  {{"kind":"match","text":"Match ...","pairs":[{{"left":"..","right":".."}}],'
+    '"explanation":"..."}},\n'
+    '  {{"kind":"order","text":"Put in order ...","sequence":["first","second","third"],'
+    '"explanation":"..."}}\n'
+    "]}}"
 )
 
 
-def _fallback_questions(subject: str, age: int, grade: int) -> list[dict]:
-    bank = SUBJECT_BANK.get(subject, SUBJECT_BANK["math"])
-    chosen = bank[:15]
-    out = []
-    for q in chosen:
-        out.append(
-            {
-                "text": q["text"],
-                "text_np": q.get("text_np"),
-                "options": q["options"],
-                "correct_index": q["correct_index"],
-                "explanation": q["explanation"],
-                "figure": q.get("figure"),
-            }
+def _norm_mcq(q: dict) -> dict | None:
+    opts = q.get("options")
+    ci = q.get("correct_index")
+    if (
+        isinstance(q.get("text"), str)
+        and isinstance(opts, list)
+        and len(opts) == 4
+        and isinstance(ci, int)
+        and 0 <= ci < 4
+    ):
+        return {
+            "kind": "mcq",
+            "text": q["text"],
+            "text_np": q.get("text_np"),
+            "options": [str(o) for o in opts],
+            "correct_index": ci,
+            "explanation": q.get("explanation", ""),
+            "figure": q.get("figure"),
+            "pairs": None,
+            "sequence": None,
+        }
+    return None
+
+
+def _norm_match(q: dict) -> dict | None:
+    pairs = q.get("pairs")
+    if (
+        isinstance(q.get("text"), str)
+        and isinstance(pairs, list)
+        and 2 <= len(pairs) <= 5
+        and all(
+            isinstance(p, dict)
+            and isinstance(p.get("left"), (str, int, float))
+            and isinstance(p.get("right"), (str, int, float))
+            for p in pairs
         )
-    return out
+    ):
+        return {
+            "kind": "match",
+            "text": q["text"],
+            "text_np": q.get("text_np"),
+            "options": [],
+            "correct_index": 0,
+            "explanation": q.get("explanation", ""),
+            "figure": None,
+            "pairs": [
+                {"left": str(p["left"]), "right": str(p["right"])} for p in pairs
+            ],
+            "sequence": None,
+        }
+    return None
+
+
+def _norm_order(q: dict) -> dict | None:
+    seq = q.get("sequence")
+    if (
+        isinstance(q.get("text"), str)
+        and isinstance(seq, list)
+        and 2 <= len(seq) <= 6
+        and all(isinstance(s, (str, int, float)) for s in seq)
+    ):
+        return {
+            "kind": "order",
+            "text": q["text"],
+            "text_np": q.get("text_np"),
+            "options": [],
+            "correct_index": 0,
+            "explanation": q.get("explanation", ""),
+            "figure": None,
+            "pairs": None,
+            "sequence": [str(s) for s in seq],
+        }
+    return None
 
 
 def _validate(payload: dict) -> list[dict]:
-    questions = payload.get("questions", [])
-    valid = []
-    for q in questions:
-        opts = q.get("options")
-        ci = q.get("correct_index")
-        if (
-            isinstance(q.get("text"), str)
-            and isinstance(opts, list)
-            and len(opts) == 4
-            and isinstance(ci, int)
-            and 0 <= ci < 4
-        ):
-            valid.append(
-                {
-                    "text": q["text"],
-                    "text_np": q.get("text_np"),
-                    "options": [str(o) for o in opts],
-                    "correct_index": ci,
-                    "explanation": q.get("explanation", ""),
-                    "figure": q.get("figure"),
-                }
-            )
-    return valid
+    out: list[dict] = []
+    for q in payload.get("questions", []):
+        kind = q.get("kind", "mcq")
+        norm = (
+            _norm_match(q)
+            if kind == "match"
+            else _norm_order(q)
+            if kind == "order"
+            else _norm_mcq(q)
+        )
+        if norm:
+            out.append(norm)
+    return out
+
+
+def _fallback_questions(subject: str, age: int, grade: int) -> list[dict]:
+    """Mixed offline fallback (preserves match/order question kinds)."""
+    bank = SUBJECT_PACK_MIXED.get(subject, SUBJECT_PACK_MIXED["math"])
+    out = []
+    for q in bank[:15]:
+        out.append({k: v for k, v in q.items() if k != "id"})
+    return out
 
 
 def _guess_mime(data: bytes) -> str:
@@ -87,7 +152,7 @@ def generate_questions(
     grade: int,
     image_bytes: list[bytes] | None = None,
 ) -> list[dict]:
-    """Return up to 15 validated MCQs. Never raises — falls back on error."""
+    """Return up to 15 validated mixed-type questions. Never raises."""
     if not settings.GEMINI_API_KEY:
         return _fallback_questions(subject, age, grade)
 
@@ -109,7 +174,7 @@ def generate_questions(
             contents=contents,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                temperature=0.4,
+                temperature=0.5,
             ),
         )
 

@@ -10,6 +10,7 @@ def _q(text, options, correct, explanation, text_np=None, figure=None):
     _counter["n"] += 1
     return {
         "id": f"q{_counter['n']}",
+        "kind": "mcq",
         "text": text,
         "text_np": text_np,
         "options": options,
@@ -166,3 +167,52 @@ PUZZLE_QUESTIONS = [
     _order("Order the seasons starting from spring", ["Spring", "Summer", "Autumn", "Winter"], "Seasons cycle through the year."),
     _match("Match the body part to its use", [("Eyes", "See"), ("Ears", "Hear"), ("Nose", "Smell"), ("Tongue", "Taste")], "Each body part has a job."),
 ]
+
+
+# ---------- Subject-specific puzzles (mixed into the category packs) ----------
+MATH_PUZZLES = [
+    _order("Order from smallest to biggest", ["5", "10", "15", "20"], "Smallest is 5, biggest is 20."),
+    _match("Match the shape to its sides", [("Triangle", "3"), ("Square", "4"), ("Pentagon", "5"), ("Hexagon", "6")], "Count the sides of each shape."),
+    _order("Order these numbers", ["2", "4", "6", "8"], "Counting by twos."),
+    _match("Match the number to its double", [("2", "4"), ("3", "6"), ("4", "8"), ("5", "10")], "Double means add it to itself."),
+    _order("Arrange from lightest to heaviest", ["Feather", "Apple", "Brick", "Car"], "A feather is lightest of all."),
+]
+
+NEPALI_PUZZLES = [
+    _match("Match the Nepali word to its meaning", [("आमा", "Mother"), ("पानी", "Water"), ("घर", "House"), ("रुख", "Tree")], "Common Nepali words."),
+    _order("Order the Nepali vowels", ["अ", "आ", "इ", "ई"], "The first vowels of the alphabet."),
+    _match("Match the color word", [("रातो", "Red"), ("हरियो", "Green"), ("निलो", "Blue"), ("पहेंलो", "Yellow")], "Colors in Nepali."),
+    _order("Order the numbers in Nepali", ["एक", "दुई", "तीन", "चार"], "One, two, three, four."),
+    _match("Match the body part", [("हात", "Hand"), ("आँखा", "Eye"), ("कान", "Ear"), ("नाक", "Nose")], "Body parts in Nepali."),
+]
+
+SCIENCE_PUZZLES = [
+    _match("Match the animal to its baby", [("Dog", "Puppy"), ("Cat", "Kitten"), ("Cow", "Calf"), ("Hen", "Chick")], "Baby animal names."),
+    _order("Order the butterfly life cycle", ["Egg", "Caterpillar", "Cocoon", "Butterfly"], "How a butterfly grows."),
+    _match("Match the body part to its sense", [("Eyes", "See"), ("Ears", "Hear"), ("Nose", "Smell"), ("Tongue", "Taste")], "Each sense organ has a job."),
+    _order("Order the planets from the Sun", ["Mercury", "Venus", "Earth", "Mars"], "Closest to farthest from the Sun."),
+    _match("Match the animal to its home", [("Bird", "Nest"), ("Bee", "Hive"), ("Dog", "Kennel"), ("Fish", "Water")], "Where animals live."),
+]
+
+
+def _interleave(mcqs: list, puzzles: list) -> list:
+    """Spread puzzle questions through the MCQ list for variety per level."""
+    out: list = []
+    pi = 0
+    for i, q in enumerate(mcqs):
+        out.append(q)
+        if (i + 1) % 4 == 0 and pi < len(puzzles):
+            out.append(puzzles[pi])
+            pi += 1
+    while pi < len(puzzles):
+        out.append(puzzles[pi])
+        pi += 1
+    return out
+
+
+# Mixed category packs: existing MCQs + interleaved match/order puzzles.
+SUBJECT_PACK_MIXED = {
+    "math": _interleave(MATH_QUESTIONS, MATH_PUZZLES),
+    "nepali": _interleave(NEPALI_QUESTIONS, NEPALI_PUZZLES),
+    "science": _interleave(SCIENCE_QUESTIONS, SCIENCE_PUZZLES),
+}

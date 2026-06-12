@@ -68,8 +68,6 @@ async def upload_book(
     pack_id = f"pers-{uid()}"
     title, title_np = SUBJECT_TITLES.get(subject, SUBJECT_TITLES["math"])
     with store.lock:
-        # Keep only the latest book pack — drop any previous ones.
-        store.delete_personalized_packs()
         store.save_pack(
             {
                 "id": pack_id,

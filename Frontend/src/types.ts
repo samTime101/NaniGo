@@ -64,6 +64,7 @@ export interface QuestionPack {
   grade: number;
   createdBy?: string; // parent name for personalized
   createdAt?: number;
+  childId?: string;
   questions: Question[];
   levels: Level[];
 }

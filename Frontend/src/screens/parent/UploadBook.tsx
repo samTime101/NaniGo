@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, ImagePlus, X, Wand2, Sparkles, Map, Check } from 'lucide-react'
 import { Screen, Button } from '../../components/ui'
+import Avatar from '../../components/Avatar'
 import { useGame } from '../../store/GameStore'
 import type { SubjectId } from '../../types'
 
@@ -26,6 +27,7 @@ export default function UploadBook() {
   const [photos, setPhotos] = useState<string[]>([])
   const [files, setFiles] = useState<File[]>([])
   const [subject, setSubject] = useState<SubjectId>('math')
+  const [targetId, setTargetId] = useState<string>(children[0]?.id ?? '')
   const [phase, setPhase] = useState<'pick' | 'processing'>('pick')
   const [step, setStep] = useState(0)
 
@@ -41,7 +43,7 @@ export default function UploadBook() {
   }
 
   const generate = () => {
-    const child = children[0]
+    const child = children.find((c) => c.id === targetId) ?? children[0]
     if (!child) return
     uploadBook(child.id, subject, files)
     setPhase('processing')
@@ -96,6 +98,26 @@ export default function UploadBook() {
                   <ImagePlus size={28} />
                   <span className="text-xs font-bold">Add</span>
                 </button>
+              </div>
+
+              <label className="mb-2 block font-bold text-[#555]">
+                For which child? / कुन बच्चाको लागि?
+              </label>
+              <div className="no-scrollbar mb-5 flex gap-3 overflow-x-auto pb-1">
+                {children.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setTargetId(c.id)}
+                    className={`flex shrink-0 items-center gap-2 rounded-full py-1.5 pl-1.5 pr-4 transition-colors ${
+                      targetId === c.id
+                        ? 'bg-teal text-white'
+                        : 'bg-white text-[#555] shadow-sm'
+                    }`}
+                  >
+                    <Avatar id={c.avatar} size={32} />
+                    <span className="font-bold">{c.name}</span>
+                  </button>
+                ))}
               </div>
 
               <label className="mb-2 block font-bold text-[#555]">Subject / विषय</label>

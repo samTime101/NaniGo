@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, CameraOff } from 'lucide-react'
-import { Screen } from '../../components/ui'
+import { ArrowLeft, CameraOff, QrCode, X, CheckCircle2 } from 'lucide-react'
+import { Screen, Button } from '../../components/ui'
 import QrScanner from '../../components/QrScanner'
 import { useGame } from '../../store/GameStore'
+import { burst, cue } from '../../lib/confetti'
 
 /** Pull a 4–8 digit code out of a scanned value like "nanigo://child/482913". */
 function parseCode(text: string): string {
@@ -17,23 +18,31 @@ export default function KidScan() {
   const { loginChildByCode, children } = useGame()
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', ''])
   const [error, setError] = useState(false)
+  const [scanning, setScanning] = useState(false)
   const [camError, setCamError] = useState(false)
   const [scanMsg, setScanMsg] = useState<string | null>(null)
+  const [scanned, setScanned] = useState(false)
   const [scanKey, setScanKey] = useState(0)
   const inputs = useRef<(HTMLInputElement | null)[]>([])
 
+  const celebrateAndGo = () => {
+    cue('scan')
+    burst()
+    setScanned(true)
+    setScanning(false)
+    setTimeout(() => nav('/kid/home'), 750)
+  }
+
   const tryLogin = async (code: string) => {
     const child = await loginChildByCode(code)
-    if (child) {
-      nav('/kid/home')
-      return true
-    }
-    return false
+    return !!child
   }
 
   const onScan = async (text: string) => {
     const ok = await tryLogin(parseCode(text))
-    if (!ok) {
+    if (ok) {
+      celebrateAndGo()
+    } else {
       setScanMsg('Card not recognized — try again')
       setTimeout(() => {
         setScanMsg(null)
@@ -50,7 +59,8 @@ export default function KidScan() {
     if (v && i < 5) inputs.current[i + 1]?.focus()
     if (next.every((d) => d) && next.join('').length === 6) {
       tryLogin(next.join('')).then((ok) => {
-        if (!ok) {
+        if (ok) celebrateAndGo()
+        else {
           setError(true)
           setDigits(['', '', '', '', '', ''])
           inputs.current[0]?.focus()
@@ -71,25 +81,97 @@ export default function KidScan() {
           <h1 className="text-2xl font-extrabold">Scan your card</h1>
           <p className="mb-6 opacity-90">आफ्नो कार्ड स्क्यान गर्नुहोस्</p>
 
-          {/* Camera scanner */}
-          {camError ? (
-            <div className="flex h-64 w-64 flex-col items-center justify-center gap-3 rounded-3xl border-4 border-dashed border-white/30 px-6 text-center">
-              <CameraOff size={44} className="text-gold" />
-              <p className="text-sm font-semibold opacity-90">
-                Camera unavailable here. Type the 6-digit code below instead.
-              </p>
+          {/* Scanner area */}
+          <div className="relative">
+            <AnimatePresence mode="wait">
+              {scanned ? (
+                <motion.div
+                  key="ok"
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="flex h-64 w-64 flex-col items-center justify-center gap-3 rounded-3xl bg-success text-white"
+                >
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300 }}
+                  >
+                    <CheckCircle2 size={72} />
+                  </motion.div>
+                  <span className="text-xl font-extrabold">Scanned!</span>
+                </motion.div>
+              ) : scanning ? (
+                camError ? (
+                  <motion.div
+                    key="camerr"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex h-64 w-64 flex-col items-center justify-center gap-3 rounded-3xl border-4 border-dashed border-white/30 px-6 text-center"
+                  >
+                    <CameraOff size={44} className="text-gold" />
+                    <p className="text-sm font-semibold opacity-90">
+                      Camera unavailable. Type the 6-digit code below.
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.div key="scanner" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                    <QrScanner
+                      key={scanKey}
+                      onScan={onScan}
+                      onError={() => setCamError(true)}
+                    />
+                  </motion.div>
+                )
+              ) : (
+                <motion.button
+                  key="placeholder"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => {
+                    setCamError(false)
+                    setScanning(true)
+                    setScanKey((k) => k + 1)
+                  }}
+                  className="flex h-64 w-64 flex-col items-center justify-center gap-4 rounded-3xl border-4 border-dashed border-white/30 bg-white/5"
+                >
+                  <QrCode size={72} className="text-gold" />
+                  <span className="text-base font-bold opacity-90">
+                    Tap to open camera
+                  </span>
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Scan / stop controls */}
+          {!scanned && (
+            <div className="mt-5 w-full max-w-[300px]">
+              {scanning ? (
+                <Button variant="gold" full onClick={() => setScanning(false)}>
+                  <span className="flex items-center justify-center gap-2">
+                    <X size={20} /> Stop camera
+                  </span>
+                </Button>
+              ) : (
+                <Button
+                  variant="gold"
+                  full
+                  onClick={() => {
+                    setCamError(false)
+                    setScanning(true)
+                    setScanKey((k) => k + 1)
+                  }}
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <QrCode size={20} /> Scan QR Code
+                  </span>
+                </Button>
+              )}
             </div>
-          ) : (
-            <QrScanner
-              key={scanKey}
-              onScan={onScan}
-              onError={() => setCamError(true)}
-            />
           )}
 
-          {scanMsg && (
-            <p className="mt-3 font-bold text-gold">{scanMsg}</p>
-          )}
+          {scanMsg && <p className="mt-3 font-bold text-gold">{scanMsg}</p>}
 
           {/* divider */}
           <div className="my-6 flex w-full max-w-[320px] items-center gap-3 opacity-80">
@@ -123,9 +205,7 @@ export default function KidScan() {
             ))}
           </motion.div>
 
-          {error && (
-            <p className="mt-3 font-bold text-gold">Oops! Wrong code</p>
-          )}
+          {error && <p className="mt-3 font-bold text-gold">Oops! Wrong code</p>}
 
           <p className="mt-6 text-sm opacity-80">
             Demo code: {children[0]?.childCode ?? '482913'}

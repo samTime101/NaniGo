@@ -33,14 +33,36 @@ export function rain() {
 }
 
 /** Tiny audio + haptic cue hook for correct/wrong. */
-export function cue(type: 'correct' | 'wrong' | 'win') {
+export function cue(type: 'correct' | 'wrong' | 'win' | 'scan') {
   try {
     if ('vibrate' in navigator) {
-      navigator.vibrate(type === 'wrong' ? 120 : type === 'win' ? [60, 40, 60] : 40);
+      navigator.vibrate(
+        type === 'wrong' ? 120 : type === 'win' ? [60, 40, 60] : type === 'scan' ? [30, 30, 30] : 40,
+      );
     }
     const ctx = new (window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext })
         .webkitAudioContext)();
+
+    if (type === 'scan') {
+      // pleasant two-tone "beep-boop" confirmation
+      const notes = [880, 1320];
+      notes.forEach((f, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        const t = ctx.currentTime + i * 0.12;
+        osc.frequency.setValueAtTime(f, t);
+        gain.gain.setValueAtTime(0.14, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+        osc.start(t);
+        osc.stop(t + 0.18);
+      });
+      return;
+    }
+
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);

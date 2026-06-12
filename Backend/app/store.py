@@ -18,7 +18,7 @@ import time
 import uuid
 
 from .config import settings
-from .data.questions import PUZZLE_QUESTIONS, SUBJECT_BANK
+from .data.questions import PUZZLE_QUESTIONS, SUBJECT_PACK_MIXED
 
 _lock = threading.RLock()
 
@@ -53,6 +53,7 @@ def _build_levels(pack_id: str, questions: list[dict], per_level: int, count: in
 
 def _default_pack(subject, title, title_np, questions):
     pack_id = f"default-{subject}"
+    levels = max(1, len(questions) // 5)
     return {
         "id": pack_id,
         "title": title,
@@ -63,7 +64,7 @@ def _default_pack(subject, title, title_np, questions):
         "grade": 2,
         "created_by": None,
         "questions": questions,
-        "levels": _build_levels(pack_id, questions, 5, 5),
+        "levels": _build_levels(pack_id, questions, 5, levels),
     }
 
 
@@ -213,13 +214,13 @@ class Store:
     # ---------- seeding ----------
     def _seed(self) -> None:
         self.save_pack(
-            _default_pack("math", "Math Adventure", "गणित यात्रा", SUBJECT_BANK["math"])
+            _default_pack("math", "Math Adventure", "गणित यात्रा", SUBJECT_PACK_MIXED["math"])
         )
         self.save_pack(
-            _default_pack("nepali", "Nepali Words", "नेपाली शब्द", SUBJECT_BANK["nepali"])
+            _default_pack("nepali", "Nepali Words", "नेपाली शब्द", SUBJECT_PACK_MIXED["nepali"])
         )
         self.save_pack(
-            _default_pack("science", "Science Explorer", "विज्ञान खोज", SUBJECT_BANK["science"])
+            _default_pack("science", "Science Explorer", "विज्ञान खोज", SUBJECT_PACK_MIXED["science"])
         )
         # Mixed interactive pack: match-the-following, order (drag&drop), mcq.
         puzzles_id = "default-puzzles"

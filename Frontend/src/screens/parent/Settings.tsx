@@ -5,6 +5,7 @@ import { ArrowLeft, RefreshCw, Clock, LogOut, QrCode } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Screen } from '../../components/ui'
 import Avatar from '../../components/Avatar'
+import { ParentNav } from '../../components/KidChrome'
 import { useGame } from '../../store/GameStore'
 
 export default function Settings() {
@@ -15,7 +16,7 @@ export default function Settings() {
 
   return (
     <Screen>
-      <div className="min-h-svh px-6 pb-10 pt-6">
+      <div className="min-h-svh px-6 pb-28 pt-6">
         <button onClick={() => nav('/parent/dashboard')} className="mb-2 text-teal">
           <ArrowLeft size={28} />
         </button>
@@ -58,6 +59,8 @@ export default function Settings() {
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: 'easeInOut' }}
+                      style={{ overflow: 'hidden' }}
                       className="flex flex-col items-center gap-3 px-4 pb-5"
                     >
                       <div className="rounded-2xl bg-cream p-4">
@@ -111,6 +114,7 @@ export default function Settings() {
           <LogOut size={20} /> Log out
         </button>
       </div>
+      <ParentNav />
     </Screen>
   )
 }

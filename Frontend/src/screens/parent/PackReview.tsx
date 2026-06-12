@@ -13,24 +13,35 @@ import {
   Lightbulb,
 } from 'lucide-react'
 import { Screen, Loading } from '../../components/ui'
+import { ParentNav } from '../../components/KidChrome'
 import { useGame } from '../../store/GameStore'
 import type { Question, QuestionPack } from '../../types'
 
 export default function PackReview() {
   const nav = useNavigate()
-  const { packs, ready } = useGame()
+  const { packs, ready, children } = useGame()
   const [openPack, setOpenPack] = useState<string | null>(null)
+  const [filterChild, setFilterChild] = useState<string>('all')
 
   if (!ready) return <Loading />
 
-  const sorted = [...packs].sort((a, b) => {
+  const childName = (id?: string) =>
+    children.find((c) => c.id === id)?.name
+
+  let list = [...packs]
+  if (filterChild !== 'all') {
+    list = list.filter(
+      (p) => p.type === 'default' || p.childId === filterChild,
+    )
+  }
+  const sorted = list.sort((a, b) => {
     if (a.type !== b.type) return a.type === 'personalized' ? -1 : 1
     return (b.createdAt ?? 0) - (a.createdAt ?? 0)
   })
 
   return (
     <Screen>
-      <div className="min-h-svh px-5 pb-12 pt-5">
+      <div className="min-h-svh px-5 pb-28 pt-5">
         <div className="mb-4 flex items-center gap-3">
           <button onClick={() => nav('/parent/dashboard')} className="text-teal">
             <ArrowLeft size={26} />
@@ -43,11 +54,35 @@ export default function PackReview() {
           </div>
         </div>
 
+        {/* child filter */}
+        <div className="no-scrollbar mb-4 flex gap-2 overflow-x-auto pb-1">
+          <button
+            onClick={() => setFilterChild('all')}
+            className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold ${
+              filterChild === 'all' ? 'bg-teal text-white' : 'bg-white text-[#555] shadow-sm'
+            }`}
+          >
+            All
+          </button>
+          {children.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setFilterChild(c.id)}
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold ${
+                filterChild === c.id ? 'bg-teal text-white' : 'bg-white text-[#555] shadow-sm'
+              }`}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+
         <div className="flex flex-col gap-3">
           {sorted.map((pack) => (
             <PackCard
               key={pack.id}
               pack={pack}
+              childName={childName(pack.childId)}
               open={openPack === pack.id}
               onToggle={() =>
                 setOpenPack((o) => (o === pack.id ? null : pack.id))
@@ -56,16 +91,19 @@ export default function PackReview() {
           ))}
         </div>
       </div>
+      <ParentNav />
     </Screen>
   )
 }
 
 function PackCard({
   pack,
+  childName,
   open,
   onToggle,
 }: {
   pack: QuestionPack
+  childName?: string
   open: boolean
   onToggle: () => void
 }) {
@@ -86,6 +124,9 @@ function PackCard({
           </div>
           <div className="text-sm text-[#999]">
             {pack.questions.length} questions · {pack.titleNp}
+            {childName && pack.type === 'personalized' && (
+              <span className="ml-1 font-bold text-teal">· for {childName}</span>
+            )}
           </div>
         </div>
         <motion.span animate={{ rotate: open ? 180 : 0 }} className="text-teal">

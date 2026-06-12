@@ -86,6 +86,7 @@ type RawPack = {
   grade: number;
   created_by?: string | null;
   created_at?: number | null;
+  child_id?: string | null;
   questions: RawQuestion[];
   levels: RawLevel[];
 };
@@ -135,6 +136,7 @@ function toPack(p: RawPack): QuestionPack {
     grade: p.grade,
     createdBy: p.created_by ?? undefined,
     createdAt: p.created_at ?? undefined,
+    childId: p.child_id ?? undefined,
     questions: p.questions.map(toQuestion),
     levels: p.levels.map((l) => ({
       id: l.id,
