@@ -1,19 +1,22 @@
 """Voice tutor endpoints backed by ElevenLabs Conversational AI.
 
-The kid taps "Ask Nani" inside a book/pack and talks to a voice agent that is
-grounded in that book's content (a lightweight RAG approach):
+The child taps "Ask Nani" and talks to a voice agent grounded in ALL of their
+learning content (a lightweight RAG approach) — no need to pick a topic first:
 
-1. The backend OCR's the uploaded pages into ``pack.source_text`` (see uploads).
-2. Here we build a system prompt + first message from that text (plus the
-   generated questions as a fallback) and hand them to the frontend.
+1. Uploaded pages are OCR'd into ``pack.source_text`` (see uploads).
+2. Here we combine the text (plus question-derived facts) from every book the
+   child has, build a system prompt + first message, and hand them to the
+   frontend.
 3. The frontend starts an ElevenLabs session and passes them as conversation
-   *overrides*, so a single shared agent is personalised per book.
+   *overrides*, so a single shared agent is personalised per child.
+
+Language: when the child switches the app to Nepali, the tutor replies in
+Nepali (Devanagari) using the warm "Jessica" voice. Nepali isn't a supported
+conversational language on ElevenLabs, so the speech pipeline uses Hindi (same
+script), which reads Devanagari Nepali text intelligibly.
 
 The ElevenLabs API key never leaves the server — we only return a short-lived
-signed URL for the WebRTC/WebSocket connection.
-
-Requires, in the ElevenLabs agent's Security settings, that overrides are
-enabled for "System prompt" and "First message".
+signed URL for the connection.
 """
 
 from __future__ import annotations
@@ -34,11 +37,15 @@ _SIGNED_URL_ENDPOINT = (
 )
 
 # Keep the override prompt well within ElevenLabs limits.
-_MAX_CONTEXT_CHARS = 6000
+_MAX_CONTEXT_CHARS = 7000
 
 
 def _enabled() -> bool:
     return bool(settings.ELEVENLABS_API_KEY and settings.ELEVENLABS_AGENT_ID)
+
+
+def _is_nepali(lang: str | None) -> bool:
+    return (lang or "").lower() in {"np", "ne", "nepali"}
 
 
 def _context_from_questions(pack: dict) -> str:
@@ -60,77 +67,86 @@ def _context_from_questions(pack: dict) -> str:
         elif q.get("kind") == "order":
             seq = " -> ".join(q.get("sequence") or [])
             lines.append(f"{text}: {seq}")
+        elif q.get("kind") == "speak":
+            lines.append(f"{text}: {q.get('answer', '')}")
         exp = q.get("explanation")
         if exp:
             lines.append(f"   ({exp})")
     return "\n".join(lines)
 
 
-def _build_prompt(pack: dict, child: dict | None) -> tuple[str, str]:
-    """Return (system_prompt, first_message) grounded in the book content."""
-    knowledge = (pack.get("source_text") or "").strip()
-    if not knowledge:
-        knowledge = _context_from_questions(pack)
-    knowledge = knowledge[:_MAX_CONTEXT_CHARS]
+def _all_context(child_id: str | None) -> str:
+    """Combine knowledge from every book the child can learn from."""
+    parts: list[str] = []
+    for pack in store.packs.values():
+        # Include shared default packs + this child's personalised packs.
+        if pack.get("type") == "personalized" and child_id:
+            if pack.get("child_id") not in (None, child_id):
+                continue
+        text = (pack.get("source_text") or "").strip() or _context_from_questions(pack)
+        if text.strip():
+            parts.append(f"## {pack.get('title', 'Book')} ({pack.get('subject', '')})\n{text}")
+    return "\n\n".join(parts)[:_MAX_CONTEXT_CHARS]
 
+
+def _build_session(context: str, child: dict | None, lang: str | None) -> dict:
+    """Build the full session payload (prompt, first message, voice, language)."""
     name = (child or {}).get("name", "friend")
-    grade = (child or {}).get("grade", pack.get("grade", 2))
+    grade = (child or {}).get("grade", 2)
     age = (child or {}).get("age", 7)
-    subject = pack.get("subject", "this subject")
-    title = pack.get("title", "your book")
+    nepali = _is_nepali(lang)
+
+    base_rules = (
+        "- Speak in short, simple, encouraging sentences a young child "
+        "understands. One idea at a time.\n"
+        "- Use ONLY the learning content below to answer. If something isn't "
+        "there, gently say you can only help with their lessons and steer back.\n"
+        "- Never give away quiz answers directly — give a hint and ask a "
+        "guiding question so the child figures it out.\n"
+        "- Be cheerful and celebrate effort.\n"
+    )
+
+    if nepali:
+        lang_rule = (
+            "- ALWAYS reply in simple, warm Nepali written in Devanagari script "
+            "(देवनागरी). Keep sentences short and easy for a small child.\n"
+        )
+        first_message = (
+            f"नमस्ते {name}! म नानी हुँ। तिम्रा पाठहरूको बारेमा जे पनि सोध्नुहोस्!"
+        )
+        voice_id = settings.ELEVENLABS_NEPALI_VOICE_ID
+        language = settings.ELEVENLABS_NEPALI_LANG_CODE  # "hi" (Devanagari pipeline)
+    else:
+        lang_rule = (
+            "- Reply in English by default; if the child speaks Nepali, you may "
+            "reply in simple Nepali.\n"
+        )
+        first_message = (
+            f"Namaste {name}! I'm Nani, your study buddy. "
+            "Ask me anything about your lessons!"
+        )
+        voice_id = None
+        language = "en"
 
     system_prompt = (
         f"You are Nani, a warm, patient, and playful voice tutor for children "
         f"in Nepal. You are helping {name}, a {age}-year-old in class {grade}, "
-        f"learn from their book \"{title}\" ({subject}).\n\n"
+        f"learn from their books.\n\n"
         "RULES:\n"
-        "- Speak in short, simple, encouraging sentences a young child "
-        "understands. One idea at a time.\n"
-        "- You may reply in English or Nepali, matching the language the child "
-        "uses. Keep Nepali simple.\n"
-        "- ONLY answer using the book content below. If the answer is not in "
-        "the book, gently say you can only help with this book and steer back "
-        "to it.\n"
-        "- Never give away quiz answers directly — instead give a hint and ask "
-        "a guiding question so the child figures it out.\n"
-        "- Be cheerful and celebrate effort.\n\n"
-        "=== BOOK CONTENT ===\n"
-        f"{knowledge}\n"
-        "=== END BOOK CONTENT ==="
+        f"{lang_rule}{base_rules}\n"
+        "=== LEARNING CONTENT ===\n"
+        f"{context or '(no books yet — encourage the child and offer general help)'}\n"
+        "=== END LEARNING CONTENT ==="
     )
 
-    first_message = (
-        f"Namaste {name}! I'm Nani. I just read your book about {subject}. "
-        "Ask me anything about it!"
-    )
-    return system_prompt, first_message
-
-
-def _build_general_prompt(child: dict | None) -> tuple[str, str]:
-    """Prompt for the always-on tutor when the child isn't inside a book."""
-    name = (child or {}).get("name", "friend")
-    grade = (child or {}).get("grade", 2)
-    age = (child or {}).get("age", 7)
-
-    system_prompt = (
-        f"You are Nani, a warm, patient, and playful voice tutor for children "
-        f"in Nepal. You are helping {name}, a {age}-year-old in class {grade}. "
-        "Help with school subjects like math, science, Nepali, and English.\n\n"
-        "RULES:\n"
-        "- Speak in short, simple, encouraging sentences a young child "
-        "understands. One idea at a time.\n"
-        "- You may reply in English or Nepali, matching the language the child "
-        "uses. Keep Nepali simple.\n"
-        "- Keep topics age-appropriate and school-related. Gently steer back if "
-        "the child drifts off-topic.\n"
-        "- Encourage curiosity: give hints and ask guiding questions instead of "
-        "just handing over answers.\n"
-        "- Be cheerful and celebrate effort."
-    )
-    first_message = (
-        f"Namaste {name}! I'm Nani, your study buddy. What shall we learn today?"
-    )
-    return system_prompt, first_message
+    return {
+        "signed_url": _signed_url(),
+        "agent_id": settings.ELEVENLABS_AGENT_ID,
+        "system_prompt": system_prompt,
+        "first_message": first_message,
+        "voice_id": voice_id,
+        "language": language,
+    }
 
 
 def _signed_url() -> str:
@@ -165,25 +181,21 @@ def tutor_config():
 
 
 @router.get("/session")
-def tutor_general_session(child_id: str | None = None):
-    """Mint a session for the always-on tutor (no specific book)."""
+def tutor_session(child_id: str | None = None, lang: str | None = None):
+    """Mint a session grounded in ALL of the child's books (no topic picking)."""
     if not _enabled():
         raise HTTPException(status_code=503, detail="Voice tutor not configured")
 
     child = store.children.get(child_id) if child_id else None
-    system_prompt, first_message = _build_general_prompt(child)
-
-    return {
-        "signed_url": _signed_url(),
-        "agent_id": settings.ELEVENLABS_AGENT_ID,
-        "system_prompt": system_prompt,
-        "first_message": first_message,
-    }
+    context = _all_context(child_id)
+    return _build_session(context, child, lang)
 
 
 @router.get("/{pack_id}/session")
-def tutor_session(pack_id: str, child_id: str | None = None):
-    """Mint a signed URL + per-book override prompt for the voice tutor."""
+def tutor_pack_session(
+    pack_id: str, child_id: str | None = None, lang: str | None = None
+):
+    """Mint a session grounded in a single book (kept for completeness)."""
     if not _enabled():
         raise HTTPException(status_code=503, detail="Voice tutor not configured")
 
@@ -192,11 +204,5 @@ def tutor_session(pack_id: str, child_id: str | None = None):
         raise HTTPException(status_code=404, detail="Pack not found")
 
     child = store.children.get(child_id) if child_id else None
-    system_prompt, first_message = _build_prompt(pack, child)
-
-    return {
-        "signed_url": _signed_url(),
-        "agent_id": settings.ELEVENLABS_AGENT_ID,
-        "system_prompt": system_prompt,
-        "first_message": first_message,
-    }
+    context = (pack.get("source_text") or "").strip() or _context_from_questions(pack)
+    return _build_session(context[:_MAX_CONTEXT_CHARS], child, lang)

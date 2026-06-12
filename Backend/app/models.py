@@ -38,10 +38,24 @@ class Question(BaseModel):
     accept: Optional[list[str]] = None
 
 
+class LessonStep(BaseModel):
+    # "teach" shows a concept; "tap" is an interactive quick-check.
+    kind: Literal["teach", "tap"] = "teach"
+    title: str = ""
+    body: str = ""
+    # Fields used by interactive "tap" steps:
+    question: Optional[str] = None
+    options: Optional[list[str]] = None
+    correct_index: Optional[int] = None
+    explanation: Optional[str] = None
+
+
 class Level(BaseModel):
     id: str
     sequence_no: int
     question_ids: list[str]
+    # Interactive "teach first" lesson steps shown before the questions.
+    teach: list[LessonStep] = []
 
 
 class QuestionPack(BaseModel):

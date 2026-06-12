@@ -8,9 +8,11 @@ import Figure from '../../components/Figure'
 import MatchQuestion from '../../components/MatchQuestion'
 import OrderQuestion from '../../components/OrderQuestion'
 import SpeakQuestion from '../../components/SpeakQuestion'
+import Lesson from '../../components/Lesson'
 import { useGame } from '../../store/GameStore'
 import { api } from '../../lib/api'
 import { burst, cue } from '../../lib/confetti'
+import { deriveLesson } from '../../lib/lesson'
 
 const PASTELS = ['#FFE3D6', '#D8F3F2', '#FFF3C4', '#E2F5E4']
 const PASTEL_TEXT = ['#c2410c', '#0a8584', '#a07c00', '#15803d']
@@ -30,6 +32,14 @@ export default function Game() {
       .filter(Boolean) as NonNullable<(typeof pack.questions)[number]>[]
   }, [pack, seq])
 
+  const lessonCards = useMemo(() => {
+    if (!pack) return []
+    const lvl = pack.levels.find((l) => l.sequenceNo === Number(seq))
+    if (lvl?.teach && lvl.teach.length) return lvl.teach
+    return deriveLesson(questions)
+  }, [pack, seq, questions])
+
+  const [phase, setPhase] = useState<'learn' | 'quiz'>('learn')
   const [idx, setIdx] = useState(0)
   const [picked, setPicked] = useState<number | null>(null)
   const [answered, setAnswered] = useState<{ correct: boolean } | null>(null)
@@ -47,6 +57,17 @@ export default function Game() {
   if (!ready) return <Loading />
   if (!activeChild) return <Navigate to="/kid/scan" replace />
   if (!pack || questions.length === 0) return <Navigate to="/kid/home" replace />
+
+  // Teach first (Duolingo/SoloLearn style), then the questions.
+  if (phase === 'learn' && lessonCards.length > 0) {
+    return (
+      <Lesson
+        cards={lessonCards}
+        onStart={() => setPhase('quiz')}
+        onExit={() => nav('/kid/home')}
+      />
+    )
+  }
 
   const q = questions[idx]
   const kind = q.kind ?? 'mcq'

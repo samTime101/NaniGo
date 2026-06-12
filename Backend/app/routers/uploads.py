@@ -2,7 +2,7 @@ import threading
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
-from ..ai import extract_book_text, generate_questions
+from ..ai import extract_book_text, generate_lessons, generate_questions
 from ..deps import get_current_parent
 from ..models import QuestionPack, SubjectId, UploadResponse
 from ..store import now_ms, store, uid
@@ -18,7 +18,8 @@ SUBJECT_TITLES: dict[str, tuple[str, str]] = {
 
 
 def _run_pipeline(pack_id: str, subject: str, age: int, grade: int, images: list[bytes]):
-    """Background worker: generate, validate, split into 3 levels of 5."""
+    """Background worker: generate a balanced (equal-kind) question set and
+    split it into levels of 4 — one of each question type per level."""
     try:
         raw = generate_questions(subject, age, grade, images)
         # OCR the pages into plain text so the voice tutor can ground its
@@ -26,11 +27,17 @@ def _run_pipeline(pack_id: str, subject: str, age: int, grade: int, images: list
         # string; the tutor router then derives context from the questions.
         source_text = extract_book_text(images)
         questions = []
-        for i, q in enumerate(raw[:15]):
+        for i, q in enumerate(raw):
             questions.append({**q, "id": f"{pack_id}-q{i}"})
+        per_level = 4
+        level_count = max(1, (len(questions) + per_level - 1) // per_level)
         levels = []
-        for i in range(3):
-            chunk = questions[i * 5 : i * 5 + 5]
+        level_chunks = []
+        for i in range(level_count):
+            chunk = questions[i * per_level : i * per_level + per_level]
+            if not chunk:
+                continue
+            level_chunks.append(chunk)
             levels.append(
                 {
                     "id": f"{pack_id}-L{i + 1}",
@@ -38,6 +45,10 @@ def _run_pipeline(pack_id: str, subject: str, age: int, grade: int, images: list
                     "question_ids": [q["id"] for q in chunk],
                 }
             )
+        # Teach-first lessons: one short lesson per level, grounded in the book.
+        lessons = generate_lessons(subject, age, grade, level_chunks, source_text)
+        for lvl, lesson in zip(levels, lessons):
+            lvl["teach"] = lesson
         with store.lock:
             pack = store.packs.get(pack_id)
             if pack:

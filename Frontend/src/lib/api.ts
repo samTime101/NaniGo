@@ -76,7 +76,22 @@ type RawQuestion = {
   accept?: string[] | null;
 };
 
-type RawLevel = { id: string; sequence_no: number; question_ids: string[] };
+type RawLevel = {
+  id: string;
+  sequence_no: number;
+  question_ids: string[];
+  teach?:
+    | {
+        kind?: 'teach' | 'tap';
+        title?: string;
+        body?: string;
+        question?: string | null;
+        options?: string[] | null;
+        correct_index?: number | null;
+        explanation?: string | null;
+      }[]
+    | null;
+};
 
 type RawPack = {
   id: string;
@@ -146,6 +161,16 @@ function toPack(p: RawPack): QuestionPack {
       id: l.id,
       sequenceNo: l.sequence_no,
       questionIds: l.question_ids,
+      teach:
+        l.teach?.map((t) => ({
+          kind: t.kind ?? 'teach',
+          title: t.title ?? '',
+          body: t.body ?? '',
+          question: t.question ?? undefined,
+          options: t.options ?? undefined,
+          correctIndex: t.correct_index ?? undefined,
+          explanation: t.explanation ?? undefined,
+        })) ?? undefined,
     })),
   };
 }
@@ -286,25 +311,20 @@ export const api = {
     return request<{ enabled: boolean; agent_id: string }>('/tutor/config');
   },
 
-  async tutorSession(packId: string, childId?: string) {
-    const qs = childId ? `?child_id=${encodeURIComponent(childId)}` : '';
+  // Session grounded in ALL the child's books (no topic selection needed).
+  async tutorSession(childId?: string, lang?: string) {
+    const params = new URLSearchParams();
+    if (childId) params.set('child_id', childId);
+    if (lang) params.set('lang', lang);
+    const qs = params.toString();
     return request<{
       signed_url: string;
       agent_id: string;
       system_prompt: string;
       first_message: string;
-    }>(`/tutor/${packId}/session${qs}`);
-  },
-
-  // General tutor session (not tied to a specific book).
-  async tutorGeneralSession(childId?: string) {
-    const qs = childId ? `?child_id=${encodeURIComponent(childId)}` : '';
-    return request<{
-      signed_url: string;
-      agent_id: string;
-      system_prompt: string;
-      first_message: string;
-    }>(`/tutor/session${qs}`);
+      voice_id: string | null;
+      language: string | null;
+    }>(`/tutor/session${qs ? `?${qs}` : ''}`);
   },
 
   // speech (voice-answer questions)

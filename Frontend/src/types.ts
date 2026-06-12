@@ -51,6 +51,17 @@ export interface Level {
   id: string;
   sequenceNo: number;
   questionIds: string[];
+  teach?: LessonStep[];
+}
+
+export interface LessonStep {
+  kind: 'teach' | 'tap';
+  title: string;
+  body: string;
+  question?: string;
+  options?: string[];
+  correctIndex?: number;
+  explanation?: string;
 }
 
 export type PackType = 'default' | 'personalized';

@@ -55,6 +55,16 @@ class Settings:
         "ELEVENLABS_STT_MODEL_ID", "scribe_v1"
     )
 
+    # "Jessica - Playful, Bright, Warm" voice, used when the child switches the
+    # tutor to Nepali. Nepali isn't a supported conversational language, so we
+    # use Hindi (same Devanagari script) for the speech pipeline.
+    ELEVENLABS_NEPALI_VOICE_ID: str = os.getenv(
+        "ELEVENLABS_NEPALI_VOICE_ID", "cgSgspJ2msm6clMCkdW9"
+    )
+    ELEVENLABS_NEPALI_LANG_CODE: str = os.getenv(
+        "ELEVENLABS_NEPALI_LANG_CODE", "hi"
+    )
+
     HEART_REFILL_MINUTES: int = int(os.getenv("HEART_REFILL_MINUTES", "5"))
 
     # SQLite database file (relative to the Backend folder by default).

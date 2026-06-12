@@ -19,13 +19,14 @@ SYSTEM_PROMPT = (
     "You are an OCR and question-writing assistant for a children's learning "
     "app in Nepal. Read the attached textbook page images carefully. They may "
     "contain Devanagari / Nepali text. Extract the educational content and "
-    "generate exactly 15 fun questions for a {age}-year-old child in class "
-    "{grade} studying {subject}. Mix the question types for variety:\n"
-    "- about 8 'mcq' (multiple choice, 4 options)\n"
-    "- about 2 'match' (match-the-following with 3-4 pairs)\n"
-    "- about 2 'order' (put 3-4 items in the correct order)\n"
-    "- about 3 'speak' (the child hears the question and answers OUT LOUD "
-    "with their voice; the answer should be a short word or phrase)\n"
+    "generate exactly 16 fun questions for a {age}-year-old child in class "
+    "{grade} studying {subject}. Use an EQUAL mix of the four question types — "
+    "exactly 4 of each:\n"
+    "- 4 'mcq' (multiple choice, 4 options)\n"
+    "- 4 'match' (match-the-following with 3-4 pairs)\n"
+    "- 4 'order' (put 3-4 items in the correct order)\n"
+    "- 4 'speak' (the child hears the question and answers OUT LOUD with their "
+    "voice; the answer should be a short word or phrase)\n"
     "Keep language simple and kid-friendly. Return STRICT JSON only:\n"
     '{{"questions": [\n'
     '  {{"kind":"mcq","text":"...","options":["a","b","c","d"],'
@@ -158,13 +159,216 @@ def _validate(payload: dict) -> list[dict]:
     return out
 
 
+QUESTION_KINDS = ["mcq", "match", "order", "speak"]
+
+
+def balance_questions(questions: list[dict], per_kind: int = 3) -> list[dict]:
+    """Return an equal number of each question kind, interleaved for variety.
+
+    Picks up to ``per_kind`` questions of each kind (mcq/match/order/speak) and
+    round-robins them so every level ends up with a mix of types. Kinds with
+    fewer than ``per_kind`` available simply contribute what they have.
+    """
+    buckets = {k: [q for q in questions if q.get("kind") == k] for k in QUESTION_KINDS}
+    picked = {k: buckets[k][:per_kind] for k in QUESTION_KINDS}
+    ordered: list[dict] = []
+    for i in range(per_kind):
+        for k in QUESTION_KINDS:
+            if i < len(picked[k]):
+                ordered.append(picked[k][i])
+    return ordered
+
+
 def _fallback_questions(subject: str, age: int, grade: int) -> list[dict]:
-    """Mixed offline fallback (preserves match/order question kinds)."""
+    """Mixed offline fallback with an equal mix of question kinds."""
     bank = SUBJECT_PACK_MIXED.get(subject, SUBJECT_PACK_MIXED["math"])
+    stripped = [{k: v for k, v in q.items() if k != "id"} for q in bank]
+    return balance_questions(stripped, per_kind=3)
+
+
+def derive_lesson(questions: list[dict]) -> list[dict]:
+    """Build interactive lesson steps from a level's questions (offline fallback).
+
+    Teaches each concept first, then mixes in a quick "tap" check (reusing mcq
+    options) so the lesson feels interactive like Duolingo/SoloLearn.
+    """
+    steps: list[dict] = []
+    for q in questions:
+        kind = q.get("kind", "mcq")
+        text = q.get("text", "")
+        exp = q.get("explanation", "")
+        if kind == "mcq":
+            opts = q.get("options") or []
+            ci = q.get("correct_index", 0)
+            ans = opts[ci] if 0 <= ci < len(opts) else ""
+            steps.append(
+                {
+                    "kind": "teach",
+                    "title": "Let's learn",
+                    "body": f"{text}\nThe answer is: {ans}." + (f"\n{exp}" if exp else ""),
+                }
+            )
+            if len(opts) >= 2:
+                steps.append(
+                    {
+                        "kind": "tap",
+                        "title": "Quick check",
+                        "question": text,
+                        "options": opts,
+                        "correct_index": ci,
+                        "explanation": exp,
+                    }
+                )
+        elif kind == "match":
+            pairs = q.get("pairs") or []
+            lines = "\n".join(f"{p['left']}  -  {p['right']}" for p in pairs)
+            steps.append(
+                {
+                    "kind": "teach",
+                    "title": "Let's learn",
+                    "body": f"{text}\n{lines}" + (f"\n{exp}" if exp else ""),
+                }
+            )
+        elif kind == "order":
+            seq = q.get("sequence") or []
+            steps.append(
+                {
+                    "kind": "teach",
+                    "title": "Let's learn",
+                    "body": f"{text}\nCorrect order: " + " -> ".join(seq)
+                    + (f"\n{exp}" if exp else ""),
+                }
+            )
+        elif kind == "speak":
+            steps.append(
+                {
+                    "kind": "teach",
+                    "title": "Let's learn",
+                    "body": f"{text}\nThe answer is: {q.get('answer', '')}."
+                    + (f"\n{exp}" if exp else ""),
+                }
+            )
+        else:
+            steps.append({"kind": "teach", "title": "Let's learn", "body": text})
+    return steps
+
+
+LESSON_PROMPT = (
+    "You are a friendly, fun teacher for a {age}-year-old child in class "
+    "{grade} studying {subject}. The child will be quizzed on the topics below, "
+    "but FIRST you must teach them interactively, like Duolingo or SoloLearn — "
+    "short, simple, and encouraging. For EACH topic group (in order), create 3 "
+    "to 4 lesson steps that MIX two kinds:\n"
+    '- "teach": a short fun title and a body of 1-3 very simple sentences '
+    "(you may include a tiny example).\n"
+    '- "tap": a quick interactive check with a short question, 3 short options, '
+    "the index of the correct option, and a one-line explanation.\n"
+    "Start each group with a teach step, then alternate with at least one tap "
+    "check. Teach the idea so the child can then answer — base it ONLY on the "
+    "topics/book content given. Do NOT use emojis. Return STRICT JSON only:\n"
+    '{{"lessons": [ [ '
+    '{{"kind":"teach","title":"..","body":".."}}, '
+    '{{"kind":"tap","question":"..","options":["a","b","c"],"correct_index":0,'
+    '"explanation":".."}} '
+    "] ]}}\n"
+    "with exactly one inner list per topic group, in the same order."
+)
+
+
+def _topic_lines(questions: list[dict]) -> str:
     out = []
-    for q in bank[:15]:
-        out.append({k: v for k, v in q.items() if k != "id"})
-    return out
+    for q in questions:
+        out.append(f"- ({q.get('kind', 'mcq')}) {q.get('text', '')}")
+    return "\n".join(out)
+
+
+def _clean_step(c: dict) -> dict | None:
+    if not isinstance(c, dict):
+        return None
+    kind = c.get("kind", "teach")
+    if kind == "tap":
+        opts = c.get("options")
+        ci = c.get("correct_index")
+        if (
+            isinstance(c.get("question"), str)
+            and isinstance(opts, list)
+            and 2 <= len(opts) <= 4
+            and isinstance(ci, int)
+            and 0 <= ci < len(opts)
+        ):
+            return {
+                "kind": "tap",
+                "title": str(c.get("title") or "Quick check"),
+                "body": "",
+                "question": c["question"],
+                "options": [str(o) for o in opts],
+                "correct_index": ci,
+                "explanation": str(c.get("explanation") or ""),
+            }
+        return None
+    if c.get("title") and c.get("body"):
+        return {
+            "kind": "teach",
+            "title": str(c["title"]),
+            "body": str(c["body"]),
+        }
+    return None
+
+
+def generate_lessons(
+    subject: str,
+    age: int,
+    grade: int,
+    levels_questions: list[list[dict]],
+    book_text: str = "",
+) -> list[list[dict]]:
+    """Return an interactive lesson (list of steps) for each level. Never raises.
+
+    Uses Gemini when available, grounded in the book text + each level's topics;
+    falls back to deriving steps directly from the questions.
+    """
+    if not settings.GEMINI_API_KEY:
+        return [derive_lesson(qs) for qs in levels_questions]
+
+    try:
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        groups = "\n\n".join(
+            f"Topic group {i + 1}:\n{_topic_lines(qs)}"
+            for i, qs in enumerate(levels_questions)
+        )
+        prompt = LESSON_PROMPT.format(age=age, grade=grade, subject=subject)
+        if book_text.strip():
+            prompt += f"\n\n=== BOOK CONTENT ===\n{book_text[:4000]}\n=== END ==="
+        prompt += f"\n\n=== TOPIC GROUPS ===\n{groups}"
+
+        response = client.models.generate_content(
+            model=settings.GEMINI_MODEL,
+            contents=[prompt],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.5,
+            ),
+        )
+        data = json.loads((response.text or "").strip())
+        lessons = data.get("lessons")
+        if isinstance(lessons, list) and len(lessons) == len(levels_questions):
+            cleaned: list[list[dict]] = []
+            for i, lesson in enumerate(lessons):
+                steps = []
+                if isinstance(lesson, list):
+                    for c in lesson[:5]:
+                        s = _clean_step(c)
+                        if s:
+                            steps.append(s)
+                cleaned.append(steps or derive_lesson(levels_questions[i]))
+            return cleaned
+    except Exception as exc:  # pragma: no cover - network/SDK errors
+        print(f"[ai] lesson generation failed, using fallback: {exc}")
+
+    return [derive_lesson(qs) for qs in levels_questions]
 
 
 def _guess_mime(data: bytes) -> str:
@@ -223,7 +427,7 @@ def generate_questions(
     grade: int,
     image_bytes: list[bytes] | None = None,
 ) -> list[dict]:
-    """Return up to 15 validated mixed-type questions. Never raises."""
+    """Return a balanced, equal mix of validated question kinds. Never raises."""
     if not settings.GEMINI_API_KEY:
         return _fallback_questions(subject, age, grade)
 
@@ -252,8 +456,9 @@ def generate_questions(
         text = (response.text or "").strip()
         payload = json.loads(text)
         valid = _validate(payload)
-        if valid:
-            return valid[:15]
+        balanced = balance_questions(valid, per_kind=3)
+        if balanced:
+            return balanced
     except Exception as exc:  # pragma: no cover - network/SDK errors
         print(f"[ai] Gemini generation failed, using fallback: {exc}")
 

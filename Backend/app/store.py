@@ -38,6 +38,8 @@ def gen_code() -> str:
 
 
 def _build_levels(pack_id: str, questions: list[dict], per_level: int, count: int):
+    from .ai import derive_lesson
+
     levels = []
     for i in range(count):
         chunk = questions[i * per_level : i * per_level + per_level]
@@ -46,6 +48,7 @@ def _build_levels(pack_id: str, questions: list[dict], per_level: int, count: in
                 "id": f"{pack_id}-L{i + 1}",
                 "sequence_no": i + 1,
                 "question_ids": [q["id"] for q in chunk],
+                "teach": derive_lesson(chunk),
             }
         )
     return levels
