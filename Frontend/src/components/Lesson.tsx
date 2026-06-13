@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, ArrowLeft, GraduationCap, Play, Check, X } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Play, Volume2 } from 'lucide-react'
 import { Screen } from './ui'
 import Mascot from './Mascot'
 import { cue } from '../lib/confetti'
@@ -27,6 +27,7 @@ export default function Lesson({ cards, onStart, onExit }: Props) {
   const step = cards[i]
   const last = i === cards.length - 1
   const isTap = step?.kind === 'tap'
+  
   const answeredCorrect =
     isTap && picked !== null && picked === step.correctIndex
 
@@ -54,6 +55,15 @@ export default function Lesson({ cards, onStart, onExit }: Props) {
   // A tap step must be answered correctly before continuing.
   const canContinue = !isTap || answeredCorrect
 
+  const playAudio = (text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.rate = 0.9
+      window.speechSynthesis.speak(utterance)
+    }
+  }
+
   return (
     <Screen>
       <div className="flex min-h-svh flex-col bg-gradient-to-b from-[#e7f6e9] via-cream to-cream px-5 pb-8 pt-5">
@@ -74,9 +84,10 @@ export default function Lesson({ cards, onStart, onExit }: Props) {
           </div>
         </div>
 
-        <div className="mt-2 flex items-center gap-2 font-bold text-teal">
-          <GraduationCap size={20} />
-          <span>{t('letsLearnFirst')}</span>
+        <div className="mt-6 mb-4">
+          <h2 className="text-center text-base font-extrabold text-teal">
+            {t('letsLearnFirst')}
+          </h2>
         </div>
 
         {/* step */}
@@ -99,7 +110,7 @@ export default function Lesson({ cards, onStart, onExit }: Props) {
                       {step.question}
                     </p>
                   </div>
-                  <div className="mt-4 grid grid-cols-1 gap-3">
+                  <div className="mt-5 grid grid-cols-1 gap-4">
                     {step.options?.map((opt, k) => {
                       const isAns = k === step.correctIndex
                       const isPicked = picked === k
@@ -119,10 +130,8 @@ export default function Lesson({ cards, onStart, onExit }: Props) {
                               ? { background: PASTELS[k % 4], color: PASTEL_TEXT[k % 4] }
                               : undefined
                           }
-                          className={`flex min-h-[60px] items-center justify-center gap-2 rounded-2xl p-3 text-lg font-extrabold shadow-[0_4px_0_0_rgba(0,0,0,0.08)] ${style}`}
+                          className={`flex min-h-[68px] items-center justify-center rounded-3xl px-4 py-4 text-lg font-extrabold shadow-[0_6px_0_0_rgba(0,0,0,0.08)] ${style}`}
                         >
-                          {picked !== null && isAns && <Check size={20} />}
-                          {isPicked && !isAns && <X size={20} />}
                           {opt}
                         </motion.button>
                       )
@@ -133,7 +142,7 @@ export default function Lesson({ cards, onStart, onExit }: Props) {
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`mt-4 rounded-2xl p-4 font-semibold ${
+                        className={`mt-5 rounded-3xl px-5 py-4 text-sm font-semibold leading-relaxed ${
                           answeredCorrect
                             ? 'bg-success/10 text-success'
                             : 'bg-orange/10 text-[#a05a2c]'
@@ -147,24 +156,48 @@ export default function Lesson({ cards, onStart, onExit }: Props) {
                   </AnimatePresence>
                 </div>
               ) : (
-                <div className="rounded-3xl bg-white p-6 shadow-[0_12px_30px_-15px_rgba(13,168,167,0.5)]">
-                  <h2 className="text-center text-2xl font-extrabold text-teal">
-                    {step?.title}
-                  </h2>
-                  <p className="mt-3 whitespace-pre-line text-center text-lg font-semibold leading-relaxed text-[#444]">
-                    {step?.body}
-                  </p>
-                  <div className="mt-4 flex justify-center">
-                    <Mascot mood="happy" size={84} />
+                <motion.div 
+                  className="rounded-3xl bg-white px-6 py-8 shadow-[0_12px_30px_-15px_rgba(13,168,167,0.5)]"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  {/* Mascot at top */}
+                  <div className="mb-5 flex justify-center">
+                    <Mascot mood="happy" size={96} />
                   </div>
-                </div>
+
+                  {/* Title */}
+                  <h3 className="text-center text-2xl font-extrabold text-teal">
+                    {step?.title}
+                  </h3>
+                  
+                  {/* Content in a highlighted box */}
+                  <div className="mt-5 rounded-2xl bg-orange/5 px-5 py-6 border-2 border-dashed border-orange/30">
+                    <p className="whitespace-pre-line text-center text-lg font-bold leading-loose text-[#333]">
+                      {step?.body}
+                    </p>
+                  </div>
+                  
+                  {/* Big colorful audio button */}
+                  <div className="mt-6 flex justify-center">
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => playAudio(step?.body || '')}
+                      className="inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-orange to-[#ff7849] px-8 py-4 text-lg font-extrabold text-white shadow-[0_6px_0_0_#e54f24] active:translate-y-1 active:shadow-[0_2px_0_0_#e54f24]"
+                    >
+                      <Volume2 size={24} />
+                      <span>{t('readAloud')}</span>
+                    </motion.button>
+                  </div>
+                </motion.div>
               )}
             </motion.div>
           </AnimatePresence>
         </div>
 
         {/* controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 pt-4">
           {i > 0 && (
             <button
               onClick={goPrev}

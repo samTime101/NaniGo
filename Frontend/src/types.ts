@@ -123,3 +123,6 @@ export interface LeaderboardEntry {
   grade: number;
   isCurrent?: boolean;
 }
+grade: number;
+isCurrent ?: boolean;
+}

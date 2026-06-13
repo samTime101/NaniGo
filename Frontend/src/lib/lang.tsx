@@ -144,6 +144,23 @@ const translations = {
   chooseSubject: { en: 'Choose a Subject', np: 'विषय छान्नुहोस्' },
   letsPractice: { en: "Let's practice", np: 'अभ्यास गरौं' },
   tapToStart: { en: 'Tap to start learning', np: 'सिक्न सुरु गर्न ट्याप गर्नुहोस्' },
+  
+  // Lesson screen
+  letsLearnFirst: { en: "Let's Learn First!", np: 'पहिले सिकौं!' },
+  readAloud: { en: 'Listen', np: 'सुन्नुहोस्' },
+  quickCheck: { en: 'Quick Check', np: 'छिटो जाँच' },
+  notQuiteAgain: { en: 'Not quite!', np: 'फेरि प्रयास गर्नुहोस्!' },
+  startQuestions: { en: 'Start Questions', np: 'प्रश्नहरू सुरु गर्नुहोस्' },
+  
+  // Question types
+  matchThePairs: { en: 'Match the Pairs', np: 'जोडी मिलाउनुहोस्' },
+  dragIntoOrder: { en: 'Put in Order', np: 'क्रममा राख्नुहोस्' },
+  sayItOutLoud: { en: 'Say it out loud!', np: 'ठूलो स्वरमा भन्नुहोस्!' },
+  
+  // Break screen
+  takeABreak: { en: 'Take a Break!', np: 'विश्राम लिनुहोस्!' },
+  heartRefill: { en: 'Your hearts will refill soon', np: 'तपाईंको मुटु चाँडै भरिनेछ' },
+  backHome: { en: 'Back Home', np: 'घर फर्कनुहोस्' },
 } as const
 
 type TranslationKey = keyof typeof translations

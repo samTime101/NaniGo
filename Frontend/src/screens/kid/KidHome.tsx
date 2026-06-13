@@ -16,18 +16,18 @@ const SUBJECT_META: Record<
   SubjectId,
   { color: string; np: string; illustration: string }
 > = {
-  math: { 
-    color: '#FE6538', 
+  math: {
+    color: '#FE6538',
     np: 'गणित',
     illustration: new URL('../../assets/Icons_Illustration/Homepage/Math_Illustration.jpeg', import.meta.url).href
   },
-  nepali: { 
-    color: '#0DA8A7', 
+  nepali: {
+    color: '#0DA8A7',
     np: 'नेपाली',
     illustration: new URL('../../assets/Icons_Illustration/Homepage/NepaliWord_illustration.jpeg', import.meta.url).href
   },
-  science: { 
-    color: '#22C55E', 
+  science: {
+    color: '#22C55E',
     np: 'विज्ञान',
     illustration: new URL('../../assets/Icons_Illustration/Homepage/Science_Illustration.jpeg', import.meta.url).href
   },
@@ -59,6 +59,9 @@ export default function KidHome() {
   if (!activeChild) return <Navigate to="/kid/scan" replace />
 
   const defaultPacks = packs.filter((p) => p.type === 'default')
+  
+  console.log('📦 Default Packs:', defaultPacks.length, defaultPacks.map(p => p.subject))
+  
   const myBooks = packs
     .filter(
       (p) =>
@@ -145,7 +148,7 @@ export default function KidHome() {
           </motion.div>
         </div>
 
-        <div className="relative z-10 flex-1 px-5 pt-4">
+        <div className="relative z-10 flex-1 px-5 pt-6">
           {/* My Book personalized cards (targeted to this child) */}
           {myBooks.map((book) => (
             <motion.button
@@ -172,7 +175,7 @@ export default function KidHome() {
               </span>
             </motion.button>
           ))}
-          {myBooks.length > 0 && <div className="mb-2" />}
+          {myBooks.length > 0 && <div className="mb-4" />}
 
           {/* Subjects header with layout toggle */}
           <div className="mb-5 flex items-center justify-between">
@@ -200,10 +203,10 @@ export default function KidHome() {
               )}
             </motion.button>
           </div>
-          
+
           {/* Horizontal Banner Layout */}
           {layoutMode === 'horizontal' && (
-            <div className="flex flex-col gap-3 pb-28">
+            <div className="flex flex-col gap-5 pb-28">
               {defaultPacks.map((p, i) => {
                 const meta = getPackMeta(p)
                 const done = activeChild.completedLevels[p.id] ?? 0
@@ -230,9 +233,9 @@ export default function KidHome() {
                     </div>
 
                     {/* Gradient overlay for better text readability */}
-                    <div 
+                    <div
                       className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent"
-                      style={{ 
+                      style={{
                         background: `linear-gradient(to right, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 60%, transparent 100%)`
                       }}
                     />
@@ -245,7 +248,7 @@ export default function KidHome() {
                           {done}/{p.levels.length} {t('chapter')}
                         </div>
                       </div>
-                      
+
                       {/* Progress bar */}
                       <div className="h-2 w-full max-w-[160px] overflow-hidden rounded-full bg-white/60 shadow-inner">
                         <motion.div
@@ -288,9 +291,9 @@ export default function KidHome() {
                         alt={title}
                         className="h-full w-full object-cover"
                       />
-                      <div 
+                      <div
                         className="absolute inset-0"
-                        style={{ 
+                        style={{
                           background: `linear-gradient(to bottom, transparent 0%, ${meta.color}22 100%)`
                         }}
                       />

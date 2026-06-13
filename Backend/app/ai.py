@@ -573,3 +573,45 @@ def grade_spoken_answer(
     except Exception as exc:  # pragma: no cover - network/SDK errors
         print(f"[ai] spoken grading failed, using fallback: {exc}")
         return _fallback_grade(expected, accept, transcript)
+
+    if not transcript.strip():
+        return False, "I didn't catch that. Try speaking again!"
+
+    if not settings.GEMINI_API_KEY:
+        return _fallback_grade(expected, accept, transcript)
+
+    try:
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        prompt = (
+            "You grade a young child's spoken answer in a learning game. Be "
+            "encouraging and lenient about spelling, pronunciation, extra "
+            "words, and language (English or Nepali / Devanagari).\n"
+            f"Question: {question}\n"
+            f"Correct answer: {expected}\n"
+            f"Also acceptable: {', '.join(accept) if accept else '(none)'}\n"
+            f"The child said (speech-to-text, may have errors): {transcript}\n"
+            'Return STRICT JSON only: {"correct": true or false, '
+            '"feedback": "one short, warm sentence for the child"}'
+        )
+        response = client.models.generate_content(
+            model=settings.GEMINI_MODEL,
+            contents=[prompt],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.2,
+            ),
+        )
+        data = json.loads((response.text or "").strip())
+        correct = bool(data.get("correct"))
+        feedback = str(data.get("feedback") or "").strip()
+        if not feedback:
+            feedback = (
+                "Great job!" if correct else f'The answer was "{expected}".'
+            )
+        return correct, feedback
+    except Exception as exc:  # pragma: no cover - network/SDK errors
+        print(f"[ai] spoken grading failed, using fallback: {exc}")
+        return _fallback_grade(expected, accept, transcript)

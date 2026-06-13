@@ -5,12 +5,32 @@ import { Zap, Crown, RotateCw, ArrowLeft } from 'lucide-react'
 import { Screen, Button, Loading } from '../../components/ui'
 import Avatar from '../../components/Avatar'
 import { BottomNav } from '../../components/KidChrome'
+import WordPuzzle from '../../components/WordPuzzle'
+import MissingLetterPuzzle from '../../components/MissingLetterPuzzle'
+import OrderPuzzle from '../../components/OrderPuzzle'
+import PicturePuzzle from '../../components/PicturePuzzle'
 import { useGame } from '../../store/GameStore'
 import { cue } from '../../lib/confetti'
 import { useT } from '../../lib/lang'
 import type { AvatarId } from '../../types'
 
 type Phase = 'match' | 'vs' | 'play' | 'result'
+type PuzzleType = 'mcq' | 'word' | 'missing' | 'order' | 'picture'
+
+interface BattleQuestion {
+  type: PuzzleType
+  text: string
+  // MCQ fields
+  options?: string[]
+  correctIndex?: number
+  // Puzzle fields
+  word?: string
+  missingIndex?: number
+  letterOptions?: string[]
+  sequence?: string[]
+  pairs?: Array<{ id: string; image: string; label: string }>
+}
+
 const BOTS: { name: string; avatar: AvatarId }[] = [
   { name: 'Bibek', avatar: 'monkey' },
   { name: 'Priya', avatar: 'rabbit' },
@@ -29,11 +49,83 @@ export default function Battle() {
   const [timeLeft, setTimeLeft] = useState(15)
 
   const bot = useMemo(() => BOTS[Math.floor(Math.random() * BOTS.length)], [])
-  const questions = useMemo(() => {
-    const math = packs.find((p) => p.id === 'default-math')
-    const pool = [...(math?.questions ?? [])].sort(() => Math.random() - 0.5)
-    return pool.slice(0, 5)
-  }, [packs])
+  
+  const questions: BattleQuestion[] = useMemo(() => {
+    const puzzles: BattleQuestion[] = [
+      // MCQ questions
+      {
+        type: 'mcq',
+        text: 'What is 5 + 3?',
+        options: ['6', '8', '10', '7'],
+        correctIndex: 1,
+      },
+      {
+        type: 'mcq',
+        text: 'How many sides does a triangle have?',
+        options: ['2', '3', '4', '5'],
+        correctIndex: 1,
+      },
+      // Word puzzles
+      {
+        type: 'word',
+        text: 'Build this word:',
+        word: 'HELLO',
+      },
+      {
+        type: 'word',
+        text: 'Unscramble the word:',
+        word: 'APPLE',
+      },
+      // Missing letter puzzles
+      {
+        type: 'missing',
+        text: 'Fill in the missing letter:',
+        word: 'WORLD',
+        missingIndex: 1,
+        letterOptions: ['O', 'A', 'E', 'I'],
+      },
+      {
+        type: 'missing',
+        text: 'Complete the word:',
+        word: 'HAPPY',
+        missingIndex: 2,
+        letterOptions: ['P', 'B', 'D', 'T'],
+      },
+      // Order puzzles
+      {
+        type: 'order',
+        text: 'Put these in order:',
+        sequence: ['1st', '2nd', '3rd'],
+      },
+      {
+        type: 'order',
+        text: 'Arrange from smallest to largest:',
+        sequence: ['Small', 'Medium', 'Large'],
+      },
+      // Picture puzzles
+      {
+        type: 'picture',
+        text: 'Match the pictures:',
+        pairs: [
+          { id: '1', image: '🐶', label: 'Dog' },
+          { id: '2', image: '🐱', label: 'Cat' },
+          { id: '3', image: '🐭', label: 'Mouse' },
+        ],
+      },
+      {
+        type: 'picture',
+        text: 'Match the fruits:',
+        pairs: [
+          { id: '1', image: '🍎', label: 'Apple' },
+          { id: '2', image: '🍌', label: 'Banana' },
+          { id: '3', image: '🍊', label: 'Orange' },
+        ],
+      },
+    ]
+    
+    // Shuffle and pick 5 random puzzles
+    return puzzles.sort(() => Math.random() - 0.5).slice(0, 5)
+  }, [])
 
   // matchmaking -> vs -> play
   useEffect(() => {
@@ -70,8 +162,32 @@ export default function Battle() {
 
   const q = questions[qIdx]
 
-  const answer = (i: number) => {
+  const handlePuzzleCorrect = () => {
     if (picked !== null) return
+    setPicked(1) // Mark as answered correctly
+    const speedBonus = Math.round((timeLeft / 15) * 100)
+    cue('correct')
+    setMyScore((s) => s + 100 + speedBonus)
+
+    // Bot answers with random timing
+    const botCorrect = Math.random() < 0.7
+    if (botCorrect) {
+      const botBonus = Math.round(Math.random() * 80) + 20
+      setBotScore((s) => s + 100 + botBonus)
+    }
+
+    setTimeout(() => {
+      if (qIdx + 1 >= questions.length) {
+        setPhase('result')
+      } else {
+        setQIdx((n) => n + 1)
+        setPicked(null)
+      }
+    }, 1200)
+  }
+
+  const answer = (i: number) => {
+    if (picked !== null || q.type !== 'mcq') return
     setPicked(i)
     const correct = i === q?.correctIndex
     const speedBonus = Math.round((timeLeft / 15) * 100)
@@ -224,26 +340,74 @@ export default function Battle() {
               <div className="rounded-3xl bg-white p-6 text-center shadow-sm">
                 <div className="text-xl font-extrabold text-[#333]">{q?.text}</div>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                {q?.options.map((opt, i) => {
-                  let style = 'bg-white text-teal'
-                  if (picked !== null) {
-                    if (i === q.correctIndex) style = 'bg-success text-white'
-                    else if (i === picked) style = 'bg-heart text-white'
-                    else style = 'bg-white opacity-50'
-                  }
-                  return (
-                    <motion.button
-                      key={i}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => answer(i)}
-                      className={`min-h-[80px] rounded-3xl text-xl font-extrabold shadow-[0_5px_0_0_rgba(0,0,0,0.08)] ${style}`}
-                    >
-                      {opt}
-                    </motion.button>
-                  )
-                })}
-              </div>
+
+              {/* MCQ Questions */}
+              {q?.type === 'mcq' && (
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  {q.options?.map((opt, i) => {
+                    let style = 'bg-white text-teal'
+                    if (picked !== null) {
+                      if (i === q.correctIndex) style = 'bg-success text-white'
+                      else if (i === picked) style = 'bg-heart text-white'
+                      else style = 'bg-white opacity-50'
+                    }
+                    return (
+                      <motion.button
+                        key={i}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => answer(i)}
+                        className={`min-h-[80px] rounded-3xl text-xl font-extrabold shadow-[0_5px_0_0_rgba(0,0,0,0.08)] ${style}`}
+                      >
+                        {opt}
+                      </motion.button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Word Puzzle */}
+              {q?.type === 'word' && q.word && picked === null && (
+                <div className="mt-6">
+                  <WordPuzzle word={q.word} onCorrect={handlePuzzleCorrect} />
+                </div>
+              )}
+
+              {/* Missing Letter Puzzle */}
+              {q?.type === 'missing' && q.word && q.missingIndex !== undefined && q.letterOptions && picked === null && (
+                <div className="mt-6">
+                  <MissingLetterPuzzle
+                    word={q.word}
+                    missingIndex={q.missingIndex}
+                    options={q.letterOptions}
+                    onCorrect={handlePuzzleCorrect}
+                  />
+                </div>
+              )}
+
+              {/* Order Puzzle */}
+              {q?.type === 'order' && q.sequence && picked === null && (
+                <div className="mt-6">
+                  <OrderPuzzle sequence={q.sequence} onCorrect={handlePuzzleCorrect} />
+                </div>
+              )}
+
+              {/* Picture Puzzle */}
+              {q?.type === 'picture' && q.pairs && picked === null && (
+                <div className="mt-6">
+                  <PicturePuzzle pairs={q.pairs} onCorrect={handlePuzzleCorrect} />
+                </div>
+              )}
+
+              {/* Solved indicator for puzzles */}
+              {picked !== null && q?.type !== 'mcq' && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mt-6 rounded-3xl bg-success p-6 text-center text-2xl font-extrabold text-white"
+                >
+                  ✓ Solved!
+                </motion.div>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { useEffect, useRef } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Lock, Star, Mountain } from 'lucide-react'
+import { ArrowLeft, Lock, Star, Mountain, Crown } from 'lucide-react'
 import { Screen, Loading } from '../../components/ui'
 import Mascot from '../../components/Mascot'
 import { BottomNav } from '../../components/KidChrome'
@@ -10,6 +10,8 @@ import { useT } from '../../lib/lang'
 import type { QuestionPack } from '../../types'
 
 const mapBackground = new URL('../../assets/Icons_Illustration/background.png', import.meta.url).href
+const mathBackground = new URL('../../assets/Icons_Illustration/background_Math.png', import.meta.url).href
+const scienceBackground = new URL('../../assets/Icons_Illustration/background_science.png', import.meta.url).href
 
 export default function LevelMap() {
   const { packId } = useParams()
@@ -25,8 +27,8 @@ export default function LevelMap() {
   const completed = activeChild.completedLevels[pack.id] ?? 0
   const current = completed + 1
 
-  // Nepali Words gets the immersive 3D candy-crush style scrolling map.
-  if (pack.subject === 'nepali') {
+  // Nepali, Math, and Science get the immersive 3D candy-crush style scrolling map.
+  if (pack.subject === 'nepali' || pack.subject === 'math' || pack.subject === 'science') {
     return (
       <PathMap
         pack={pack}
@@ -65,7 +67,7 @@ export default function LevelMap() {
               const isCurrent = seq === current
               const isLocked = seq > current
               // zigzag horizontal offset
-              const offset = idx % 2 === 0 ? -54 : 54
+              const offset = idx % 2 === 0 ? -5 : 54
               const showChapter = idx % 5 === 0
 
               return (
@@ -80,7 +82,7 @@ export default function LevelMap() {
                   />
                   {/* dotted connector */}
                   {idx < pack.levels.length - 1 && (
-                    <div className="my-1 h-8 w-1 rounded-full border-l-4 border-dotted border-teal/40" />
+                    <div className="my-1 h-80 w-1 rounded-full border-l-4 border-dotted border-teal/40" />
                   )}
                   {showChapter && (
                     <ChapterBanner
@@ -206,7 +208,13 @@ function PathMap({
           <div className="flex min-h-full w-full flex-col justify-end">
             <div className="relative w-full leading-[0]">
               <img
-                src={mapBackground}
+                src={
+                  pack.subject === 'math' 
+                    ? mathBackground 
+                    : pack.subject === 'science'
+                    ? scienceBackground
+                    : mapBackground
+                }
                 alt=""
                 className="block w-full select-none"
                 draggable={false}
@@ -220,9 +228,50 @@ function PathMap({
                     seq <= completed ? 'done' : seq === current ? 'current' : 'locked'
                   const isLocked = seq > current
                   const tt = total > 1 ? idx / (total - 1) : 0
-                  // bottom (level 1) → top (last level)
-                  const topPct = 92 - tt * 84
-                  const leftPct = 50 + 26 * Math.sin(idx * 0.95 + 0.4)
+                  
+                  // Define exact positions for each level per subject
+                  const nepaliPositions = [
+                    { top: 90, left: 35 },  // Level 1: bottom left
+                    { top: 75, left: 60 },  // Level 2: right
+                    { top: 64, left: 37 },  // Level 3: left
+                    { top: 50, left: 62 },  // Level 4: right
+                    { top: 36, left: 56 },  // Level 5: center-right
+                    { top: 12, left: 50 },  // Level 6: top-center
+                    { top: 8, left: 50 },   // Level 7: top center
+                  ]
+                  
+                  const mathPositions = [
+                    { top: 90, left: 50 },  // Level 1: bottom left
+                    { top: 75, left: 59 },  // Level 2: right
+                    { top: 64, left: 42 },  // Level 3: left
+                    { top: 50, left: 55 },  // Level 4: right
+                    { top: 30, left: 54 },  // Level 5: center-right
+                    { top: 19, left: 50 },  // Level 6: top-center
+                    { top: 8, left: 50 },   // Level 7: top center
+                  ]
+                  
+                  const sciencePositions = [
+                    { top: 90, left: 53 },  // Level 1: bottom left
+                    { top: 75, left: 52 },  // Level 2: right
+                    { top: 64, left: 47 },  // Level 3: left
+                    { top: 50, left: 61 },  // Level 4: right
+                    { top: 36, left: 58 },  // Level 5: center-right
+                    { top: 16, left: 50 },  // Level 6: top-center
+                    { top: 8, left: 50 },   // Level 7: top center
+                  ]
+                  
+                  // Select position array based on subject
+                  const positions = 
+                    pack.subject === 'math' 
+                      ? mathPositions 
+                      : pack.subject === 'science'
+                      ? sciencePositions
+                      : nepaliPositions
+                  
+                  const pos = positions[idx] || { top: 92 - tt * 84, left: 50 }
+                  const topPct = pos.top
+                  const leftPct = pos.left
+                  
                   return (
                     <PathNode
                       key={lvl.id}
@@ -231,6 +280,7 @@ function PathMap({
                       topPct={topPct}
                       leftPct={leftPct}
                       onClick={() => !isLocked && onPlay(seq)}
+                      isTopLevel={idx === pack.levels.length - 1}
                     />
                   )
                 })}
@@ -251,12 +301,14 @@ function PathNode({
   topPct,
   leftPct,
   onClick,
+  isTopLevel,
 }: {
   seq: number
   state: 'done' | 'current' | 'locked'
   topPct: number
   leftPct: number
   onClick: () => void
+  isTopLevel?: boolean
 }) {
   return (
     <div
@@ -267,7 +319,18 @@ function PathNode({
         transform: 'translate(-50%, -50%)',
       }}
     >
-      {state === 'current' && (
+      {/* Crown above top level */}
+      {isTopLevel && (
+        <motion.div
+          animate={{ y: [0, -8, 0] }}
+          transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+          className="absolute -top-[56px] left-1/2 -translate-x-1/2"
+        >
+          <Crown size={44} className="fill-gold text-gold drop-shadow-[0_4px_8px_rgba(255,215,0,0.6)]" />
+        </motion.div>
+      )}
+      
+      {state === 'current' && !isTopLevel && (
         <div className="absolute -top-[60px] left-1/2 -translate-x-1/2 drop-shadow-[0_4px_6px_rgba(0,0,0,0.4)]">
           <Mascot mood="happy" size={58} />
         </div>
@@ -275,10 +338,12 @@ function PathNode({
       <motion.button
         whileTap={{ scale: 0.9, y: 3 }}
         onClick={onClick}
-        animate={state === 'current' ? { scale: [1, 1.08, 1] } : {}}
-        transition={{ repeat: Infinity, duration: 1.4 }}
+        animate={state === 'current' ? { scale: [1, 1.08, 1] } : isTopLevel ? { scale: [1, 1.05, 1] } : {}}
+        transition={{ repeat: Infinity, duration: isTopLevel ? 2 : 1.4 }}
         className={`flex h-16 w-16 items-center justify-center rounded-full border-[3px] font-extrabold ${
-          state === 'done'
+          isTopLevel
+            ? 'border-[#b8860b] bg-gradient-to-b from-gold via-[#ffd700] to-gold-dark text-white shadow-[0_7px_0_0_#a07c00,0_12px_20px_rgba(255,215,0,0.5),0_0_0_4px_rgba(255,215,0,0.3)]'
+            : state === 'done'
             ? 'border-[#b8860b] bg-gradient-to-b from-gold to-gold-dark text-white shadow-[0_7px_0_0_#a07c00,0_12px_16px_rgba(0,0,0,0.45)]'
             : state === 'current'
               ? 'border-white bg-gradient-to-b from-orange-light to-orange text-white shadow-[0_7px_0_0_#e54f24,0_12px_16px_rgba(0,0,0,0.45),0_0_0_8px_rgba(254,101,56,0.3)]'

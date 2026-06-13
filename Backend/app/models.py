@@ -39,8 +39,8 @@ class Question(BaseModel):
 
 
 class LessonStep(BaseModel):
-    # "teach" shows a concept; "tap" is an interactive quick-check.
-    kind: Literal["teach", "tap"] = "teach"
+    # "teach" shows a concept; "tap" is an interactive quick-check; puzzles are interactive games
+    kind: Literal["teach", "tap", "puzzle_word", "puzzle_missing", "puzzle_order"] = "teach"
     title: str = ""
     body: str = ""
     # Fields used by interactive "tap" steps:
@@ -48,6 +48,10 @@ class LessonStep(BaseModel):
     options: Optional[list[str]] = None
     correct_index: Optional[int] = None
     explanation: Optional[str] = None
+    # Fields used by puzzle steps:
+    word: Optional[str] = None
+    missing_index: Optional[int] = None
+    sequence: Optional[list[str]] = None
 
 
 class Level(BaseModel):
