@@ -13,7 +13,7 @@ import { useGame } from '../../store/GameStore'
 import { api } from '../../lib/api'
 import { burst, cue } from '../../lib/confetti'
 import { deriveLesson } from '../../lib/lesson'
-import { useT } from '../../lib/lang'
+import { useT, useLang } from '../../lib/lang'
 
 const PASTELS = ['#FFE3D6', '#D8F3F2', '#FFF3C4', '#E2F5E4']
 const PASTEL_TEXT = ['#c2410c', '#0a8584', '#a07c00', '#15803d']
@@ -22,6 +22,7 @@ export default function Game() {
   const { packId, seq } = useParams()
   const nav = useNavigate()
   const t = useT()
+  const { lang } = useLang()
   const { activeChild, packs, loseHeart, completeLevel, ready } = useGame()
   const pack = packs.find((p) => p.id === packId)
 
@@ -157,6 +158,11 @@ export default function Game() {
           ? t('sayItOutLoud')
           : null
 
+  // For Nepali subject, always show both languages. For other subjects, respect language setting
+  const isNepaliSubject = pack.subject === 'nepali'
+  const questionText = isNepaliSubject || lang === 'en' ? q.text : (q.textNp || q.text)
+  const showNepaliSubtitle = (isNepaliSubject || lang === 'both') && q.textNp
+
   return (
     <Screen>
       <div className="flex min-h-svh flex-col bg-cream">
@@ -215,8 +221,8 @@ export default function Game() {
                     <Figure kind={q.figure} />
                   </div>
                 )}
-                <div className="text-2xl font-extrabold text-[#333]">{q.text}</div>
-                {q.textNp && (
+                <div className="text-2xl font-extrabold text-[#333]">{questionText}</div>
+                {showNepaliSubtitle && (
                   <div className="mt-1 text-lg font-semibold text-orange">{q.textNp}</div>
                 )}
               </div>

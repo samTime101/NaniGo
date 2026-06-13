@@ -4,7 +4,7 @@ import { BookOpen, LayoutGrid, LayoutList, Heart, Flame } from 'lucide-react'
 import { Screen, Loading } from '../../components/ui'
 import { BottomNav } from '../../components/KidChrome'
 import { useGame } from '../../store/GameStore'
-import { useT, useLang } from '../../lib/lang'
+import { useT, useLang, getTitle } from '../../lib/lang'
 import { useState } from 'react'
 import type { SubjectId } from '../../types'
 
@@ -211,7 +211,10 @@ export default function KidHome() {
                 const meta = getPackMeta(p)
                 const done = activeChild.completedLevels[p.id] ?? 0
                 const progress = (done / p.levels.length) * 100
-                const title = lang === 'np' ? p.titleNp : p.title
+                
+                // Get title based on language preference
+                const titleInfo = getTitle(lang, p.title, p.titleNp, p.subject === 'nepali')
+                
                 return (
                   <motion.button
                     key={p.id}
@@ -227,7 +230,7 @@ export default function KidHome() {
                     <div className="absolute right-0 top-0 h-full w-32 opacity-80">
                       <img
                         src={meta.illustration}
-                        alt={title}
+                        alt={titleInfo.main}
                         className="h-full w-full object-cover"
                       />
                     </div>
@@ -243,7 +246,10 @@ export default function KidHome() {
                     {/* Content */}
                     <div className="relative z-10 flex flex-1 flex-col items-start gap-2 px-5 py-4">
                       <div className="text-left">
-                        <div className="text-xl font-extrabold text-[#333]">{title}</div>
+                        <div className="text-xl font-extrabold text-[#333]">{titleInfo.main}</div>
+                        {titleInfo.subtitle && (
+                          <div className="text-sm font-semibold text-orange/80 mt-0.5">{titleInfo.subtitle}</div>
+                        )}
                         <div className="text-xs font-semibold text-[#999]">
                           {done}/{p.levels.length} {t('chapter')}
                         </div>
@@ -273,7 +279,10 @@ export default function KidHome() {
                 const meta = getPackMeta(p)
                 const done = activeChild.completedLevels[p.id] ?? 0
                 const progress = (done / p.levels.length) * 100
-                const title = lang === 'np' ? p.titleNp : p.title
+                
+                // Get title based on language preference
+                const titleInfo = getTitle(lang, p.title, p.titleNp, p.subject === 'nepali')
+                
                 return (
                   <motion.button
                     key={p.id}
@@ -288,7 +297,7 @@ export default function KidHome() {
                     <div className="relative h-24 w-full overflow-hidden">
                       <img
                         src={meta.illustration}
-                        alt={title}
+                        alt={titleInfo.main}
                         className="h-full w-full object-cover"
                       />
                       <div
@@ -302,7 +311,10 @@ export default function KidHome() {
                     {/* Content */}
                     <div className="flex w-full flex-col gap-2 p-4">
                       <div>
-                        <div className="text-lg font-extrabold text-[#333]">{title}</div>
+                        <div className="text-lg font-extrabold text-[#333]">{titleInfo.main}</div>
+                        {titleInfo.subtitle && (
+                          <div className="text-xs font-semibold text-orange/80 mt-0.5">{titleInfo.subtitle}</div>
+                        )}
                         <div className="text-xs font-semibold text-[#999]">
                           {done}/{p.levels.length} {t('chapter')}
                         </div>

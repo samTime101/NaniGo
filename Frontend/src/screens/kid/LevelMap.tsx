@@ -6,7 +6,7 @@ import { Screen, Loading } from '../../components/ui'
 import Mascot from '../../components/Mascot'
 import { BottomNav } from '../../components/KidChrome'
 import { useGame } from '../../store/GameStore'
-import { useT } from '../../lib/lang'
+import { useT, useLang } from '../../lib/lang'
 import type { QuestionPack } from '../../types'
 
 const mapBackground = new URL('../../assets/Icons_Illustration/background.png', import.meta.url).href
@@ -17,6 +17,7 @@ export default function LevelMap() {
   const { packId } = useParams()
   const nav = useNavigate()
   const t = useT()
+  const { lang } = useLang()
   const { activeChild, packs, ready } = useGame()
   const pack = packs.find((p) => p.id === packId)
 
@@ -40,6 +41,10 @@ export default function LevelMap() {
     )
   }
 
+  // Get pack title based on language
+  const packTitle = lang === 'np' ? pack.titleNp : pack.title
+  const packSubtitle = lang === 'both' ? pack.titleNp : undefined
+
   return (
     <Screen>
       <div className="flex min-h-svh flex-col bg-gradient-to-b from-[#bfe9ff] via-[#e7f6e9] to-cream">
@@ -49,8 +54,8 @@ export default function LevelMap() {
             <ArrowLeft size={26} />
           </button>
           <div>
-            <div className="text-lg font-extrabold leading-tight">{pack.title}</div>
-            <div className="text-xs opacity-90">{pack.titleNp}</div>
+            <div className="text-lg font-extrabold leading-tight">{packTitle}</div>
+            {packSubtitle && <div className="text-xs opacity-90">{packSubtitle}</div>}
           </div>
         </div>
 
@@ -181,7 +186,12 @@ function PathMap({
   onPlay: (seq: number) => void
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const { lang } = useLang()
   const total = pack.levels.length
+
+  // Get pack title based on language
+  const packTitle = lang === 'np' ? pack.titleNp : pack.title
+  const packSubtitle = lang === 'both' ? pack.titleNp : undefined
 
   // Begin at the bottom of the path (level 1) and climb upward.
   useEffect(() => {
@@ -198,8 +208,8 @@ function PathMap({
             <ArrowLeft size={26} />
           </button>
           <div>
-            <div className="text-lg font-extrabold leading-tight">{pack.title}</div>
-            <div className="text-xs opacity-90">{pack.titleNp}</div>
+            <div className="text-lg font-extrabold leading-tight">{packTitle}</div>
+            {packSubtitle && <div className="text-xs opacity-90">{packSubtitle}</div>}
           </div>
         </div>
 

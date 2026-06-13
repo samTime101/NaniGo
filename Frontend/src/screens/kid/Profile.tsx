@@ -6,11 +6,16 @@ import Avatar from '../../components/Avatar'
 import Mascot from '../../components/Mascot'
 import { BottomNav } from '../../components/KidChrome'
 import { useGame } from '../../store/GameStore'
-import { useT } from '../../lib/lang'
+import { useT, useLang, type Lang } from '../../lib/lang'
+
+const ukFlag = new URL('../../assets/Icons_Illustration/uk_Flag.png', import.meta.url).href
+const nepalFlag = new URL('../../assets/Icons_Illustration/Nepal_Flag.png', import.meta.url).href
+const bothFlags = new URL('../../assets/Icons_Illustration/nepal_uk_Flag.png', import.meta.url).href
 
 export default function Profile() {
   const nav = useNavigate()
   const t = useT()
+  const { lang, setLang } = useLang()
   const { activeChild, setActiveChild, ready } = useGame()
 
   if (!ready) return <Loading />
@@ -32,6 +37,37 @@ export default function Profile() {
             <Stat icon={<Flame className="text-orange" />} label={t('streak')} value={activeChild.streakDays} />
             <Stat icon={<Coins className="text-gold" />} label={t('xp')} value={activeChild.totalXp} />
             <Stat icon={<Target className="text-teal" />} label={t('accuracy')} value={`${activeChild.accuracy}%`} />
+          </div>
+
+          {/* Language Switcher */}
+          <div className="mt-6 w-full rounded-3xl bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-2 font-extrabold text-[#444]">
+              <img src={bothFlags} alt="" className="h-7 w-7 object-contain" />
+              <span>Language / भाषा</span>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <LanguageButton
+                active={lang === 'en'}
+                onClick={() => setLang('en')}
+                flagImg={ukFlag}
+                label="English"
+                color="from-blue-400 to-blue-500"
+              />
+              <LanguageButton
+                active={lang === 'np'}
+                onClick={() => setLang('np')}
+                flagImg={nepalFlag}
+                label="नेपाली"
+                color="from-red-400 to-red-500"
+              />
+              <LanguageButton
+                active={lang === 'both'}
+                onClick={() => setLang('both')}
+                flagImg={bothFlags}
+                label="Both"
+                color="from-teal to-green-500"
+              />
+            </div>
           </div>
 
           <div className="mt-6 w-full rounded-3xl bg-white p-5 shadow-sm">
@@ -85,5 +121,36 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
       <span className="text-xl font-extrabold text-[#333]">{value}</span>
       <span className="text-xs font-semibold text-[#999]">{label}</span>
     </div>
+  )
+}
+
+function LanguageButton({
+  active,
+  onClick,
+  flagImg,
+  label,
+  color,
+}: {
+  active: boolean
+  onClick: () => void
+  flagImg: string
+  label: string
+  color: string
+}) {
+  return (
+    <motion.button
+      whileTap={{ scale: 0.92 }}
+      onClick={onClick}
+      className={`flex flex-col items-center gap-2 rounded-2xl p-4 transition-all ${
+        active
+          ? `bg-gradient-to-br ${color} text-white shadow-[0_6px_0_0_rgba(0,0,0,0.15)]`
+          : 'bg-mist/50 text-[#666] shadow-[0_3px_0_0_rgba(0,0,0,0.08)]'
+      }`}
+    >
+      <img src={flagImg} alt={label} className="h-12 w-12 object-contain" />
+      <span className={`text-xs font-extrabold ${active ? 'text-white' : 'text-[#888]'}`}>
+        {label}
+      </span>
+    </motion.button>
   )
 }

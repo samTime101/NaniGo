@@ -35,8 +35,8 @@ export function useLang() {
 /**
  * Bilingual text that respects the chosen app language:
  * - 'en'   → English only
- * - 'np'   → Nepali only
- * - 'both' → English with a small Nepali subtitle
+ * - 'np'   → Nepali only  
+ * - 'both' → English with Nepali subtitle
  */
 export function Bi({
   en,
@@ -48,8 +48,11 @@ export function Bi({
   className?: string
 }) {
   const { lang } = useLang()
+  
   if (lang === 'en') return <span className={className}>{en}</span>
   if (lang === 'np') return <span className={className}>{np}</span>
+  
+  // 'both' mode - show English with Nepali subtitle
   return (
     <span className={`flex flex-col leading-tight ${className}`}>
       <span>{en}</span>
@@ -63,7 +66,31 @@ export function Bi({
 export function pick(lang: Lang, en: string, np: string): string {
   if (lang === 'en') return en
   if (lang === 'np') return np
-  return `${en} / ${np}`
+  return `${en} / ${np}` // Both mode shows both
+}
+
+/**
+ * Get title based on language preference
+ * For Nepali subject in 'both' mode, returns object with both titles
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export function getTitle(
+  lang: Lang,
+  titleEn: string,
+  titleNp: string,
+  isNepaliSubject: boolean = false
+): { main: string; subtitle?: string } {
+  if (lang === 'en') {
+    return { main: titleEn }
+  }
+  if (lang === 'np') {
+    return { main: titleNp }
+  }
+  // 'both' mode
+  if (isNepaliSubject) {
+    return { main: titleEn, subtitle: titleNp }
+  }
+  return { main: titleEn, subtitle: titleNp }
 }
 
 // ===== TRANSLATION DICTIONARY =====
