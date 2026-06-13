@@ -8,7 +8,7 @@ export type AvatarId =
   | 'yak'
   | 'rabbit';
 
-export type SubjectId = 'math' | 'nepali' | 'science' | 'english';
+export type SubjectId = 'math' | 'nepali' | 'science';
 
 export type QuestionKind = 'mcq' | 'match' | 'order' | 'speak';
 

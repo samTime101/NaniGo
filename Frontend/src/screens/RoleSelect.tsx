@@ -22,7 +22,7 @@ export default function RoleSelect() {
           Welcome to NaniGO
         </h1>
         <p className="mb-8 text-base font-semibold text-orange">
-          स्वागत छ — Who is playing?
+          Who is playing?
         </p>
 
         <motion.button

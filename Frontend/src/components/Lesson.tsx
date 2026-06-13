@@ -4,6 +4,7 @@ import { ArrowRight, ArrowLeft, GraduationCap, Play, Check, X } from 'lucide-rea
 import { Screen } from './ui'
 import Mascot from './Mascot'
 import { cue } from '../lib/confetti'
+import { useT } from '../lib/lang'
 import type { LessonStep } from '../types'
 
 interface Props {
@@ -20,6 +21,7 @@ const PASTEL_TEXT = ['#c2410c', '#0a8584', '#a07c00', '#15803d']
  * through teach steps and quick tap-to-check exercises before the questions.
  */
 export default function Lesson({ cards, onStart, onExit }: Props) {
+  const t = useT()
   const [i, setI] = useState(0)
   const [picked, setPicked] = useState<number | null>(null)
   const step = cards[i]
@@ -74,7 +76,7 @@ export default function Lesson({ cards, onStart, onExit }: Props) {
 
         <div className="mt-2 flex items-center gap-2 font-bold text-teal">
           <GraduationCap size={20} />
-          <span>Let's learn first · पहिले सिकौं</span>
+          <span>{t('letsLearnFirst')}</span>
         </div>
 
         {/* step */}
@@ -91,7 +93,7 @@ export default function Lesson({ cards, onStart, onExit }: Props) {
                 <div>
                   <div className="rounded-3xl bg-white p-6 text-center shadow-[0_12px_30px_-15px_rgba(13,168,167,0.5)]">
                     <span className="text-xs font-bold uppercase tracking-wide text-orange">
-                      {step.title || 'Quick check'}
+                      {step.title || t('quickCheck')}
                     </span>
                     <p className="mt-2 text-2xl font-extrabold text-[#333]">
                       {step.question}
@@ -138,8 +140,8 @@ export default function Lesson({ cards, onStart, onExit }: Props) {
                         }`}
                       >
                         {answeredCorrect
-                          ? `Correct! ${step.explanation ?? ''}`
-                          : `Not quite — try again. ${step.explanation ?? ''}`}
+                          ? `${t('correct')} ${step.explanation ?? ''}`
+                          : `${t('notQuiteAgain')} ${step.explanation ?? ''}`}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -183,11 +185,11 @@ export default function Lesson({ cards, onStart, onExit }: Props) {
           >
             {last ? (
               <>
-                <Play size={22} /> Start questions
+                <Play size={22} /> {t('startQuestions')}
               </>
             ) : (
               <>
-                Continue <ArrowRight size={22} />
+                {t('continue')} <ArrowRight size={22} />
               </>
             )}
           </motion.button>

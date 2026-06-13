@@ -7,10 +7,11 @@ import { Screen } from '../../components/ui'
 import Avatar from '../../components/Avatar'
 import { ParentNav } from '../../components/KidChrome'
 import { useGame } from '../../store/GameStore'
-import { useLang, type Lang } from '../../lib/lang'
+import { useLang, useT, type Lang } from '../../lib/lang'
 
 export default function Settings() {
   const nav = useNavigate()
+  const t = useT()
   const { children, regenerateCode } = useGame()
   const { lang, setLang } = useLang()
   const [limit, setLimit] = useState(30)
@@ -28,10 +29,9 @@ export default function Settings() {
         <button onClick={() => nav('/parent/dashboard')} className="mb-2 text-teal">
           <ArrowLeft size={28} />
         </button>
-        <h1 className="text-3xl font-extrabold text-teal">Settings</h1>
-        <p className="mb-6 font-semibold text-orange">सेटिङ</p>
+        <h1 className="text-3xl font-extrabold text-teal">{t('settings')}</h1>
 
-        <div className="mb-2 font-bold text-[#555]">Children</div>
+        <div className="mb-2 font-bold text-[#555]">{t('children')}</div>
         <div className="mb-6 flex flex-col gap-2">
           {children.map((c) => {
             const open = openQr === c.id
@@ -56,6 +56,7 @@ export default function Settings() {
                   <button
                     onClick={() => regenerateCode(c.id)}
                     className="flex items-center gap-1 rounded-xl bg-orange/10 px-3 py-2 text-sm font-bold text-orange"
+                    title={t('regenerateCode')}
                   >
                     <RefreshCw size={16} />
                   </button>
@@ -90,7 +91,7 @@ export default function Settings() {
                         ))}
                       </div>
                       <p className="text-center text-sm text-[#999]">
-                        Let {c.name} scan this on the "I'm a Kid" screen
+                        {t('scanToLogin')}
                       </p>
                     </motion.div>
                   )}
@@ -101,7 +102,7 @@ export default function Settings() {
         </div>
 
         <div className="mb-2 flex items-center gap-2 font-bold text-[#555]">
-          <Globe size={18} /> Language / भाषा
+          <Globe size={18} /> {t('language')}
         </div>
         <div className="mb-6 flex gap-2 rounded-2xl bg-mist p-1">
           {LANGS.map((l) => (
@@ -136,7 +137,7 @@ export default function Settings() {
           onClick={() => nav('/role')}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-heart/10 py-4 font-bold text-heart"
         >
-          <LogOut size={20} /> Log out
+          <LogOut size={20} /> {t('logout')}
         </button>
       </div>
       <ParentNav />

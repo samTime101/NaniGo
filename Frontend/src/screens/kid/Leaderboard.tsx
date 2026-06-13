@@ -7,9 +7,11 @@ import Avatar from '../../components/Avatar'
 import { BottomNav } from '../../components/KidChrome'
 import { useGame } from '../../store/GameStore'
 import { api } from '../../lib/api'
+import { useT } from '../../lib/lang'
 import type { LeaderboardEntry } from '../../types'
 
 export default function Leaderboard() {
+  const t = useT()
   const { activeChild, ready } = useGame()
   const [tab, setTab] = useState<'class' | 'nepal'>('class')
   const [entries, setEntries] = useState<LeaderboardEntry[]>([])
@@ -38,19 +40,18 @@ export default function Leaderboard() {
     <Screen>
       <div className="flex min-h-svh flex-col bg-gradient-to-b from-teal/10 to-cream">
         <div className="px-5 pt-6">
-          <h1 className="text-3xl font-extrabold text-teal">Leaderboard</h1>
-          <p className="mb-4 font-semibold text-orange">अग्रता सूची</p>
+          <h1 className="text-3xl font-extrabold text-teal">{t('leaderboard')}</h1>
 
-          <div className="mb-5 flex rounded-2xl bg-mist p-1">
-            {(['class', 'nepal'] as const).map((t) => (
+          <div className="mb-5 mt-4 flex rounded-2xl bg-mist p-1">
+            {(['class', 'nepal'] as const).map((tabKey) => (
               <button
-                key={t}
-                onClick={() => setTab(t)}
+                key={tabKey}
+                onClick={() => setTab(tabKey)}
                 className={`flex-1 rounded-xl py-2.5 font-bold transition-colors ${
-                  tab === t ? 'bg-white text-teal shadow' : 'text-[#7a8a86]'
+                  tab === tabKey ? 'bg-white text-teal shadow' : 'text-[#7a8a86]'
                 }`}
               >
-                {t === 'class' ? 'Class' : 'All Nepal'}
+                {tabKey === 'class' ? t('classTab') : t('allNepal')}
               </button>
             ))}
           </div>
@@ -111,7 +112,7 @@ export default function Leaderboard() {
           <div className="sticky bottom-[68px] mx-5 mb-2 flex items-center gap-3 rounded-2xl bg-orange p-3 text-white shadow-lg">
             <span className="w-6 text-center font-extrabold">{currentRank}</span>
             <Avatar id={current.avatar} size={40} ring />
-            <span className="flex-1 font-bold">You · {current.name}</span>
+            <span className="flex-1 font-bold">{t('youIndicator')} · {current.name}</span>
             <span className="font-extrabold">{current.xp}</span>
           </div>
         )}

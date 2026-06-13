@@ -13,6 +13,7 @@ import { useGame } from '../../store/GameStore'
 import { api } from '../../lib/api'
 import { burst, cue } from '../../lib/confetti'
 import { deriveLesson } from '../../lib/lesson'
+import { useT } from '../../lib/lang'
 
 const PASTELS = ['#FFE3D6', '#D8F3F2', '#FFF3C4', '#E2F5E4']
 const PASTEL_TEXT = ['#c2410c', '#0a8584', '#a07c00', '#15803d']
@@ -20,6 +21,7 @@ const PASTEL_TEXT = ['#c2410c', '#0a8584', '#a07c00', '#15803d']
 export default function Game() {
   const { packId, seq } = useParams()
   const nav = useNavigate()
+  const t = useT()
   const { activeChild, packs, loseHeart, completeLevel, ready } = useGame()
   const pack = packs.find((p) => p.id === packId)
 
@@ -148,11 +150,11 @@ export default function Game() {
 
   const kindLabel =
     kind === 'match'
-      ? 'Match the pairs · जोडा मिलाउनुहोस्'
+      ? t('matchThePairs')
       : kind === 'order'
-        ? 'Drag into order · क्रम मिलाउनुहोस्'
+        ? t('dragIntoOrder')
         : kind === 'speak'
-          ? 'Say it out loud · बोलेर भन्नुहोस्'
+          ? t('sayItOutLoud')
           : null
 
   return (
@@ -319,6 +321,7 @@ export default function Game() {
 }
 
 function BreakScreen({ onHome }: { onHome: () => void }) {
+  const t = useT()
   const [left, setLeft] = useState(300)
   useEffect(() => {
     const t = setInterval(() => setLeft((l) => Math.max(0, l - 1)), 1000)
@@ -330,13 +333,13 @@ function BreakScreen({ onHome }: { onHome: () => void }) {
     <Screen>
       <div className="flex min-h-svh flex-col items-center justify-center gap-4 bg-gradient-to-b from-teal/15 to-cream px-8 text-center">
         <Mascot mood="sleep" size={160} />
-        <h1 className="text-3xl font-extrabold text-teal">Take a break!</h1>
-        <p className="font-semibold text-orange">विश्राम गरौं — hearts refill soon</p>
+        <h1 className="text-3xl font-extrabold text-teal">{t('takeABreak')}</h1>
+        <p className="font-semibold text-orange">{t('heartRefill')}</p>
         <div className="my-2 rounded-2xl bg-white px-8 py-4 text-4xl font-extrabold text-teal shadow">
           {mm}:{ss}
         </div>
         <Button variant="primary" onClick={onHome}>
-          Back Home / घर जाऔं
+          {t('backHome')}
         </Button>
       </div>
     </Screen>

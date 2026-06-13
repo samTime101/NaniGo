@@ -7,6 +7,7 @@ import Avatar from '../../components/Avatar'
 import { BottomNav } from '../../components/KidChrome'
 import { useGame } from '../../store/GameStore'
 import { cue } from '../../lib/confetti'
+import { useT } from '../../lib/lang'
 import type { AvatarId } from '../../types'
 
 type Phase = 'match' | 'vs' | 'play' | 'result'
@@ -18,6 +19,7 @@ const BOTS: { name: string; avatar: AvatarId }[] = [
 
 export default function Battle() {
   const nav = useNavigate()
+  const t = useT()
   const { activeChild, packs, awardXp, ready } = useGame()
   const [phase, setPhase] = useState<Phase>('match')
   const [qIdx, setQIdx] = useState(0)
@@ -103,8 +105,7 @@ export default function Battle() {
           <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.2, ease: 'linear' }}>
             <Zap size={70} className="fill-gold text-gold" />
           </motion.div>
-          <h1 className="text-2xl font-extrabold">Finding opponent…</h1>
-          <p className="opacity-90">प्रतिद्वन्द्वी खोज्दै…</p>
+          <h1 className="text-2xl font-extrabold">{t('findOpponent')}</h1>
         </div>
       </Screen>
     )
@@ -140,9 +141,8 @@ export default function Battle() {
       <Screen>
         <div className="flex min-h-svh flex-col items-center justify-center gap-5 bg-gradient-to-b from-gold/30 to-cream px-8 text-center">
           <h1 className="text-3xl font-extrabold text-teal">
-            {won ? 'You Won!' : 'Good Try!'}
+            {won ? t('youWon') : t('goodTry')}
           </h1>
-          <p className="-mt-3 font-semibold text-orange">{won ? 'तपाईं जित्नुभयो!' : 'राम्रो प्रयास!'}</p>
 
           <div className="flex items-end gap-4">
             <Podium name={bot.name} avatar={bot.avatar} score={botScore} place={won ? 2 : 1} />
@@ -150,12 +150,12 @@ export default function Battle() {
           </div>
 
           <div className="rounded-2xl bg-white px-8 py-3 font-extrabold text-gold shadow">
-            +{won ? 50 : 20} XP
+            +{won ? 50 : 20} {t('xp')}
           </div>
 
           <div className="flex w-full max-w-[320px] gap-3">
             <Button variant="white" full onClick={() => nav('/kid/home')}>
-              <span className="flex items-center justify-center gap-2"><ArrowLeft size={18} /> Home</span>
+              <span className="flex items-center justify-center gap-2"><ArrowLeft size={18} /> {t('home')}</span>
             </Button>
             <Button
               variant="accent"
@@ -169,7 +169,7 @@ export default function Battle() {
                 setPicked(null)
               }}
             >
-              <span className="flex items-center justify-center gap-2"><RotateCw size={18} /> Rematch</span>
+              <span className="flex items-center justify-center gap-2"><RotateCw size={18} /> {t('rematch')}</span>
             </Button>
           </div>
         </div>

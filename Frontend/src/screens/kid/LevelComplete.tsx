@@ -5,6 +5,7 @@ import { Star } from 'lucide-react'
 import { Screen, Button } from '../../components/ui'
 import Mascot from '../../components/Mascot'
 import { rain, cue } from '../../lib/confetti'
+import { useT } from '../../lib/lang'
 
 interface State {
   xpEarned: number
@@ -17,6 +18,7 @@ interface State {
 
 export default function LevelComplete() {
   const nav = useNavigate()
+  const t = useT()
   const loc = useLocation()
   const state = loc.state as State | null
   const [xp, setXp] = useState(0)
@@ -49,9 +51,8 @@ export default function LevelComplete() {
           transition={{ type: 'spring', stiffness: 200 }}
           className="text-4xl font-extrabold text-teal"
         >
-          Level Complete!
+          {t('amazingWork')}
         </motion.h1>
-        <p className="-mt-3 font-semibold text-orange">तह पूरा भयो!</p>
 
         {/* stars */}
         <div className="flex gap-3">
@@ -73,10 +74,10 @@ export default function LevelComplete() {
         <Mascot mood="jump" size={150} />
 
         <div className="rounded-3xl bg-white px-10 py-5 shadow">
-          <div className="text-sm font-bold text-[#999]">XP EARNED</div>
+          <div className="text-sm font-bold text-[#999]">{t('youEarned')}</div>
           <div className="text-5xl font-extrabold text-gold">+{xp}</div>
           <div className="mt-1 font-semibold text-[#888]">
-            {state.correct}/{state.total} correct
+            {state.correct}/{state.total} {t('accuracy')}
           </div>
         </div>
 
@@ -86,14 +87,14 @@ export default function LevelComplete() {
             full
             onClick={() => nav(`/kid/play/${state.packId}/${state.seq}`)}
           >
-            Replay
+            {t('replay')}
           </Button>
           <Button
             variant="primary"
             full
             onClick={() => nav(`/kid/map/${state.packId}`)}
           >
-            Continue
+            {t('continue')}
           </Button>
         </div>
       </div>

@@ -12,6 +12,7 @@ import ChildLogs from './screens/parent/ChildLogs'
 import PackReview from './screens/parent/PackReview'
 import KidScan from './screens/kid/KidScan'
 import KidHome from './screens/kid/KidHome'
+import SubjectBanner from './screens/kid/SubjectBanner'
 import LevelMap from './screens/kid/LevelMap'
 import Game from './screens/kid/Game'
 import LevelComplete from './screens/kid/LevelComplete'
@@ -49,6 +50,7 @@ export default function App() {
             {/* Kid */}
             <Route path="/kid/scan" element={<KidScan />} />
             <Route path="/kid/home" element={<KidHome />} />
+            <Route path="/kid/subjects" element={<SubjectBanner />} />
             <Route path="/kid/map/:packId" element={<LevelMap />} />
             <Route path="/kid/play/:packId/:seq" element={<Game />} />
             <Route path="/kid/complete" element={<LevelComplete />} />

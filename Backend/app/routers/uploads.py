@@ -13,7 +13,6 @@ SUBJECT_TITLES: dict[str, tuple[str, str]] = {
     "math": ("My Book - Math", "मेरो किताब - गणित"),
     "nepali": ("My Book - Nepali", "मेरो किताब - नेपाली"),
     "science": ("My Book - Science", "मेरो किताब - विज्ञान"),
-    "english": ("My Book - English", "मेरो किताब - अंग्रेजी"),
 }
 
 

@@ -6,9 +6,11 @@ import Avatar from '../../components/Avatar'
 import Mascot from '../../components/Mascot'
 import { BottomNav } from '../../components/KidChrome'
 import { useGame } from '../../store/GameStore'
+import { useT } from '../../lib/lang'
 
 export default function Profile() {
   const nav = useNavigate()
+  const t = useT()
   const { activeChild, setActiveChild, ready } = useGame()
 
   if (!ready) return <Loading />
@@ -22,20 +24,22 @@ export default function Profile() {
             <Avatar id={activeChild.avatar} size={110} ring />
           </motion.div>
           <h1 className="mt-4 text-3xl font-extrabold text-teal">{activeChild.name}</h1>
-          <p className="font-semibold text-orange">Class {activeChild.grade} · Age {activeChild.age}</p>
+          <p className="font-semibold text-orange">
+            {t('class')} {activeChild.grade} · {t('age')} {activeChild.age}
+          </p>
 
           <div className="mt-6 grid w-full grid-cols-3 gap-3">
-            <Stat icon={<Flame className="text-orange" />} label="Streak" value={activeChild.streakDays} />
-            <Stat icon={<Coins className="text-gold" />} label="XP" value={activeChild.totalXp} />
-            <Stat icon={<Target className="text-teal" />} label="Accuracy" value={`${activeChild.accuracy}%`} />
+            <Stat icon={<Flame className="text-orange" />} label={t('streak')} value={activeChild.streakDays} />
+            <Stat icon={<Coins className="text-gold" />} label={t('xp')} value={activeChild.totalXp} />
+            <Stat icon={<Target className="text-teal" />} label={t('accuracy')} value={`${activeChild.accuracy}%`} />
           </div>
 
           <div className="mt-6 w-full rounded-3xl bg-white p-5 shadow-sm">
-            <div className="mb-3 font-extrabold text-[#444]">Recent Wins</div>
+            <div className="mb-3 font-extrabold text-[#444]">{t('recentWins')}</div>
             {activeChild.activity.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-4">
                 <Mascot mood="sleep" size={80} />
-                <p className="text-[#999]">No wins yet — let's play!</p>
+                <p className="text-[#999]">{t('noWinsYet')}</p>
               </div>
             ) : (
               <div className="flex flex-col gap-2">
@@ -63,7 +67,7 @@ export default function Profile() {
               }}
             >
               <span className="flex items-center justify-center gap-2 text-heart">
-                <LogOut size={20} /> Switch User / बाहिरिनुहोस्
+                <LogOut size={20} /> {t('switchUser')}
               </span>
             </Button>
           </div>

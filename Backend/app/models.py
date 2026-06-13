@@ -7,7 +7,7 @@ from pydantic import BaseModel, EmailStr, Field
 AvatarId = Literal[
     "panda", "tiger", "elephant", "monkey", "rhino", "peacock", "yak", "rabbit"
 ]
-SubjectId = Literal["math", "nepali", "science", "english"]
+SubjectId = Literal["math", "nepali", "science"]
 PackType = Literal["default", "personalized"]
 PackStatus = Literal["generating", "ready", "failed"]
 FigureId = Literal["rectangle", "triangle", "circle", "square", "star"]

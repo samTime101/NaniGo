@@ -18,7 +18,7 @@ import time
 import uuid
 
 from .config import settings
-from .data.questions import PUZZLE_QUESTIONS, SUBJECT_PACK_MIXED
+from .data.questions import SUBJECT_PACK_MIXED
 
 _lock = threading.RLock()
 
@@ -224,22 +224,6 @@ class Store:
         )
         self.save_pack(
             _default_pack("science", "Science Explorer", "विज्ञान खोज", SUBJECT_PACK_MIXED["science"])
-        )
-        # Mixed interactive pack: match-the-following, order (drag&drop), mcq.
-        puzzles_id = "default-puzzles"
-        self.save_pack(
-            {
-                "id": puzzles_id,
-                "title": "Fun Puzzles",
-                "title_np": "रमाइलो पजल",
-                "subject": "math",
-                "type": "default",
-                "status": "ready",
-                "grade": 2,
-                "created_by": None,
-                "questions": PUZZLE_QUESTIONS,
-                "levels": _build_levels(puzzles_id, PUZZLE_QUESTIONS, 5, 3),
-            }
         )
 
         parent_id = "parent-1"
