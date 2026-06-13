@@ -75,6 +75,9 @@ async def upload_book(
     child = store.children.get(child_id)
     if not child or child["parent_id"] != parent["id"]:
         raise HTTPException(status_code=403, detail="Not your child")
+        
+    if parent.get("subscription_tier") != "pro":
+        raise HTTPException(status_code=403, detail="Upgrade to Pro to upload custom books")
 
     # Read all uploaded pages (multiple images -> one question bank).
     images: list[bytes] = []
@@ -116,6 +119,10 @@ def retry_upload(pack_id: str, parent: dict = Depends(get_current_parent)):
     pack = store.packs.get(pack_id)
     if not pack:
         raise HTTPException(status_code=404, detail="Pack not found")
+        
+    if parent.get("subscription_tier") != "pro":
+        raise HTTPException(status_code=403, detail="Upgrade to Pro to upload custom books")
+        
     with store.lock:
         pack["status"] = "generating"
         store.save_pack(pack)

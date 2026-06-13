@@ -98,6 +98,7 @@ export interface Child {
   weeklyXp: number[]; // 7 entries
   completedLevels: Record<string, number>; // packId -> highest completed sequenceNo
   activity: ActivityItem[];
+  isPro?: boolean;
 }
 
 export interface ActivityItem {
@@ -111,6 +112,7 @@ export interface Parent {
   id: string;
   name: string;
   email: string;
+  subscription_tier?: 'free' | 'pro';
 }
 
 export interface LeaderboardEntry {

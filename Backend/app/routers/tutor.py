@@ -183,6 +183,15 @@ def tutor_session(child_id: str | None = None, lang: str | None = None):
     if not _enabled():
         raise HTTPException(status_code=503, detail="Voice tutor not configured")
 
+    if child_id:
+        child = store.children.get(child_id)
+        if child:
+            parent = store.parents.get(child["parent_id"])
+            if parent and parent.get("subscription_tier") != "pro":
+                raise HTTPException(status_code=403, detail="Voice Tutor requires Pro subscription")
+    else:
+        raise HTTPException(status_code=403, detail="Voice Tutor requires Pro subscription")
+
     child = store.children.get(child_id) if child_id else None
     context = _all_context(child_id)
     return _build_session(context, child, lang)
@@ -195,6 +204,15 @@ def tutor_pack_session(
     """Mint a session grounded in a single book (kept for completeness)."""
     if not _enabled():
         raise HTTPException(status_code=503, detail="Voice tutor not configured")
+        
+    if child_id:
+        child = store.children.get(child_id)
+        if child:
+            parent = store.parents.get(child["parent_id"])
+            if parent and parent.get("subscription_tier") != "pro":
+                raise HTTPException(status_code=403, detail="Voice Tutor requires Pro subscription")
+    else:
+        raise HTTPException(status_code=403, detail="Voice Tutor requires Pro subscription")
 
     pack = store.packs.get(pack_id)
     if not pack:

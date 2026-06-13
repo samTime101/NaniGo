@@ -125,6 +125,7 @@ type RawChild = {
   weekly_xp: number[];
   completed_levels: Record<string, number>;
   activity: { id: string; text: string; stars: number; at: number }[];
+  is_pro?: boolean;
 };
 
 function toQuestion(q: RawQuestion): Question {
@@ -192,6 +193,7 @@ function toChild(c: RawChild): Child {
     weeklyXp: c.weekly_xp,
     completedLevels: c.completed_levels,
     activity: c.activity,
+    isPro: c.is_pro ?? false,
   };
 }
 
@@ -479,6 +481,23 @@ export const api = {
         grade: e.grade,
         isCurrent: e.is_current,
       }),
+    );
+  },
+
+  // payment
+  async initiatePayment(returnUrl: string) {
+    return request<{ payment_url: string; pidx: string; expires_at: string; expires_in: number }>(
+      '/payment/initiate',
+      { method: 'POST', body: JSON.stringify({ return_url: returnUrl }) },
+      true
+    );
+  },
+
+  async verifyPayment(pidx: string) {
+    return request<{ status: string; message: string }>(
+      '/payment/verify',
+      { method: 'POST', body: JSON.stringify({ pidx }) },
+      true
     );
   },
 };

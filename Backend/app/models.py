@@ -81,6 +81,7 @@ class Parent(BaseModel):
     id: str
     name: str
     email: str
+    subscription_tier: Literal["free", "pro"] = "free"
 
 
 class ParentSignup(BaseModel):
@@ -123,6 +124,7 @@ class Child(BaseModel):
     weekly_xp: list[int] = Field(default_factory=lambda: [0, 0, 0, 0, 0, 0, 0])
     completed_levels: dict[str, int] = Field(default_factory=dict)
     activity: list[ActivityItem] = []
+    is_pro: bool = False
 
 
 class ChildCreate(BaseModel):

@@ -91,6 +91,7 @@ export default function VoiceTutor() {
 
   if (!enabled) return null
   if (!activeChild) return null
+  if (!activeChild.isPro) return null
 
   return (
     <>

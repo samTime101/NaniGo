@@ -11,6 +11,7 @@ import { motion } from 'framer-motion'
 import { NavLink } from 'react-router-dom'
 import type { Child } from '../types'
 import { useT } from '../lib/lang'
+import { useGame } from '../store/GameStore'
 
 const iconHome = new URL('../assets/Icons_Illustration/Icon_Home.png', import.meta.url).href
 const iconBattle = new URL('../assets/Icons_Illustration/Icon_Battle.png', import.meta.url).href
@@ -92,11 +93,12 @@ export function BottomNav() {
 /** Floating rounded dock for the parent area — same styling as the kid dock. */
 export function ParentNav() {
   const t = useT()
+  const { parent } = useGame()
   
   const parentTabs = [
     { to: '/parent/dashboard', icon: LayoutDashboard, label: t('home') },
     { to: '/parent/packs', icon: BookOpen, label: t('books') },
-    { to: '/parent/upload', icon: Upload, label: t('upload') },
+    { to: parent?.subscription_tier === 'pro' ? '/parent/upload' : '/parent/pricing', icon: Upload, label: t('upload') },
     { to: '/parent/settings', icon: Settings, label: t('settings') },
   ]
   

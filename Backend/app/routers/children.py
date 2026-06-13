@@ -23,11 +23,19 @@ def _owned_child(child_id: str, parent_id: str) -> dict:
     return child
 
 
+def _enrich_child(child: dict) -> dict:
+    parent = store.parents.get(child["parent_id"])
+    c = dict(child)
+    if parent:
+        c["is_pro"] = parent.get("subscription_tier") == "pro"
+    return c
+
+
 # ---------- Parent-scoped ----------
 @router.get("/children", response_model=list[Child])
 def list_children(parent: dict = Depends(get_current_parent)):
     return [
-        Child(**c)
+        Child(**_enrich_child(c))
         for c in store.children.values()
         if c["parent_id"] == parent["id"]
     ]
@@ -55,7 +63,7 @@ def add_child(body: ChildCreate, parent: dict = Depends(get_current_parent)):
             "activity": [],
         }
         store.save_child(child)
-    return Child(**child)
+    return Child(**_enrich_child(child))
 
 
 @router.post("/children/{child_id}/regenerate-code", response_model=Child)
@@ -64,7 +72,7 @@ def regenerate_code(child_id: str, parent: dict = Depends(get_current_parent)):
     with store.lock:
         child["child_code"] = gen_code()
         store.save_child(child)
-    return Child(**child)
+    return Child(**_enrich_child(child))
 
 
 # ---------- Kid session (public, scoped by code) ----------
@@ -73,7 +81,7 @@ def kid_login(code: str):
     child = store.child_by_code(code)
     if not child:
         raise HTTPException(status_code=404, detail="Invalid code")
-    return Child(**child)
+    return Child(**_enrich_child(child))
 
 
 @router.get("/kid/{child_id}", response_model=Child)
@@ -81,7 +89,7 @@ def get_child(child_id: str):
     child = store.children.get(child_id)
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
-    return Child(**child)
+    return Child(**_enrich_child(child))
 
 
 # ---------- Gameplay ----------
@@ -126,7 +134,7 @@ def lose_heart(child_id: str):
         if child["hearts"] == 0:
             child["hearts_refill_at"] = now_ms() + settings.HEART_REFILL_MINUTES * 60_000
         store.save_child(child)
-    return Child(**child)
+    return Child(**_enrich_child(child))
 
 
 @router.post("/kid/{child_id}/refill-hearts", response_model=Child)
@@ -138,7 +146,7 @@ def refill_hearts(child_id: str):
         child["hearts"] = 3
         child["hearts_refill_at"] = None
         store.save_child(child)
-    return Child(**child)
+    return Child(**_enrich_child(child))
 
 
 # ---------- Per-question attempt logging ----------

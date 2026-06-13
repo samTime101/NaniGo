@@ -162,7 +162,7 @@ export default function Dashboard() {
         {/* upload CTA */}
         <motion.button
           whileTap={{ scale: 0.97 }}
-          onClick={() => nav('/parent/upload')}
+          onClick={() => nav(parent?.subscription_tier === 'pro' ? '/parent/upload' : '/parent/pricing')}
           className="mb-5 flex w-full items-center gap-4 rounded-3xl bg-gradient-to-r from-teal to-teal-light p-5 text-left text-white shadow-[0_8px_0_0_#0a8584]"
         >
           <div className="rounded-2xl bg-white/20 p-3">

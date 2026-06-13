@@ -69,6 +69,9 @@ class Settings:
 
     # SQLite database file (relative to the Backend folder by default).
     DATABASE_PATH: str = os.getenv("DATABASE_PATH", "nanigo.db")
+    
+    KHALTI_SECRET_KEY: str = os.getenv("KHALTI_SECRET_KEY", "")
+    KHALTI_PUBLIC_KEY: str = os.getenv("KHALTI_PUBLIC_KEY", "")
 
 
 settings = Settings()

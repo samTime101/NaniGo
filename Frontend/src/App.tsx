@@ -10,6 +10,8 @@ import UploadBook from './screens/parent/UploadBook'
 import Settings from './screens/parent/Settings'
 import ChildLogs from './screens/parent/ChildLogs'
 import PackReview from './screens/parent/PackReview'
+import Pricing from './screens/parent/Pricing'
+import PaymentVerify from './screens/parent/PaymentVerify'
 import KidScan from './screens/kid/KidScan'
 import KidHome from './screens/kid/KidHome'
 import SubjectBanner from './screens/kid/SubjectBanner'
@@ -45,6 +47,8 @@ export default function App() {
             <Route path="/parent/upload" element={<UploadBook />} />
             <Route path="/parent/settings" element={<Settings />} />
             <Route path="/parent/packs" element={<PackReview />} />
+            <Route path="/parent/pricing" element={<Pricing />} />
+            <Route path="/parent/payment/verify" element={<PaymentVerify />} />
             <Route path="/parent/child/:id/logs" element={<ChildLogs />} />
 
             {/* Kid */}

@@ -11,6 +11,7 @@ from app.routers import (
     speech,
     tutor,
     uploads,
+    payment,
 )
 
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
@@ -33,6 +34,7 @@ app.include_router(tutor.router, prefix=api)
 app.include_router(speech.router, prefix=api)
 app.include_router(battles.router, prefix=api)
 app.include_router(leaderboard.router, prefix=api)
+app.include_router(payment.router, prefix=api)
 
 
 @app.get("/")

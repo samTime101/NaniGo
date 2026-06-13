@@ -30,6 +30,7 @@ interface GameContextValue {
   logout: () => void;
 
   // parent data
+  refreshParent: () => Promise<void>;
   refreshChildren: () => Promise<void>;
   addChild: (input: {
     name: string;
@@ -89,6 +90,15 @@ export function GameProvider({ children: kids }: { children: ReactNode }) {
       /* not authed */
     }
   }, []);
+
+  const refreshParent = useCallback(async () => {
+    try {
+      setParent(await api.me());
+      await refreshChildren();
+    } catch {
+      /* not authed */
+    }
+  }, [refreshChildren]);
 
   const setActiveChild = useCallback((child: Child | null) => {
     setActive(child);
@@ -266,6 +276,7 @@ export function GameProvider({ children: kids }: { children: ReactNode }) {
     login,
     signup,
     logout,
+    refreshParent,
     refreshChildren,
     addChild,
     regenerateCode,
