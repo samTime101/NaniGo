@@ -318,7 +318,7 @@ export const api = {
     if (lang) params.set('lang', lang);
     const qs = params.toString();
     return request<{
-      signed_url: string;
+      conversation_token: string;
       agent_id: string;
       system_prompt: string;
       first_message: string;

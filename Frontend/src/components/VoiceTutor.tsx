@@ -63,7 +63,8 @@ export default function VoiceTutor() {
       if (session.voice_id) overrides.tts = { voiceId: session.voice_id }
 
       await conversation.startSession({
-        signedUrl: session.signed_url,
+        conversationToken: session.conversation_token,
+        connectionType: 'webrtc',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         overrides: overrides as any,
       })

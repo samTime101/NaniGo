@@ -32,9 +32,7 @@ from ..store import store
 
 router = APIRouter(prefix="/tutor", tags=["tutor"])
 
-_SIGNED_URL_ENDPOINT = (
-    "https://api.elevenlabs.io/v1/convai/conversation/get-signed-url"
-)
+_TOKEN_ENDPOINT = "https://api.elevenlabs.io/v1/convai/conversation/token"
 
 # Keep the override prompt well within ElevenLabs limits.
 _MAX_CONTEXT_CHARS = 7000
@@ -140,7 +138,7 @@ def _build_session(context: str, child: dict | None, lang: str | None) -> dict:
     )
 
     return {
-        "signed_url": _signed_url(),
+        "conversation_token": _conversation_token(),
         "agent_id": settings.ELEVENLABS_AGENT_ID,
         "system_prompt": system_prompt,
         "first_message": first_message,
@@ -149,9 +147,10 @@ def _build_session(context: str, child: dict | None, lang: str | None) -> dict:
     }
 
 
-def _signed_url() -> str:
+def _conversation_token() -> str:
+    """Mint a WebRTC conversation token (voice path — reliable mic capture)."""
     req = urllib.request.Request(
-        f"{_SIGNED_URL_ENDPOINT}?agent_id={settings.ELEVENLABS_AGENT_ID}",
+        f"{_TOKEN_ENDPOINT}?agent_id={settings.ELEVENLABS_AGENT_ID}",
         headers={"xi-api-key": settings.ELEVENLABS_API_KEY},
     )
     try:
@@ -161,17 +160,15 @@ def _signed_url() -> str:
         detail = exc.read().decode("utf-8", "ignore")
         raise HTTPException(
             status_code=502,
-            detail=f"ElevenLabs signed URL request failed ({exc.code}): {detail}",
+            detail=f"ElevenLabs token request failed ({exc.code}): {detail}",
         )
     except Exception as exc:  # pragma: no cover - network
-        raise HTTPException(
-            status_code=502, detail=f"ElevenLabs unreachable: {exc}"
-        )
+        raise HTTPException(status_code=502, detail=f"ElevenLabs unreachable: {exc}")
 
-    url = body.get("signed_url")
-    if not url:
-        raise HTTPException(status_code=502, detail="No signed_url in response")
-    return url
+    token = body.get("token")
+    if not token:
+        raise HTTPException(status_code=502, detail="No token in response")
+    return token
 
 
 @router.get("/config")
