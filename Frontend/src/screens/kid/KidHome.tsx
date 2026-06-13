@@ -33,6 +33,21 @@ const SUBJECT_META: Record<
   },
 }
 
+// Pack-id-specific overrides so the English book looks distinct from Nepali
+const PACK_META_OVERRIDES: Record<string, { color: string; illustration: string }> = {
+  'default-english': {
+    color: '#7C3AED',
+    illustration: new URL('../../assets/Icons_Illustration/Homepage/Puzzles_Illustration.jpeg', import.meta.url).href,
+  },
+}
+
+function getPackMeta(pack: { id: string; subject: SubjectId }) {
+  const override = PACK_META_OVERRIDES[pack.id]
+  const base = SUBJECT_META[pack.subject]
+  if (override) return { ...base, ...override }
+  return base
+}
+
 export default function KidHome() {
   const nav = useNavigate()
   const t = useT()
@@ -190,7 +205,7 @@ export default function KidHome() {
           {layoutMode === 'horizontal' && (
             <div className="flex flex-col gap-3 pb-28">
               {defaultPacks.map((p, i) => {
-                const meta = SUBJECT_META[p.subject]
+                const meta = getPackMeta(p)
                 const done = activeChild.completedLevels[p.id] ?? 0
                 const progress = (done / p.levels.length) * 100
                 const title = lang === 'np' ? p.titleNp : p.title
@@ -252,7 +267,7 @@ export default function KidHome() {
           {layoutMode === 'vertical' && (
             <div className="grid grid-cols-2 gap-4 pb-28">
               {defaultPacks.map((p, i) => {
-                const meta = SUBJECT_META[p.subject]
+                const meta = getPackMeta(p)
                 const done = activeChild.completedLevels[p.id] ?? 0
                 const progress = (done / p.levels.length) * 100
                 const title = lang === 'np' ? p.titleNp : p.title

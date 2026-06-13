@@ -14,29 +14,30 @@ import json
 
 from .config import settings
 from .data.questions import SUBJECT_PACK_MIXED
+from .data.default_content import DEFAULT_BOOK_TEXT, DEFAULT_QUESTIONS
 
 SYSTEM_PROMPT = (
     "You are an OCR and question-writing assistant for a children's learning "
-    "app in Nepal. Read the attached textbook page images carefully. They may "
-    "contain Devanagari / Nepali text. Extract the educational content and "
-    "generate exactly 16 fun questions for a {age}-year-old child in class "
-    "{grade} studying {subject}. Use an EQUAL mix of the four question types — "
-    "exactly 4 of each:\n"
-    "- 4 'mcq' (multiple choice, 4 options)\n"
-    "- 4 'match' (match-the-following with 3-4 pairs)\n"
-    "- 4 'order' (put 3-4 items in the correct order)\n"
-    "- 4 'speak' (the child hears the question and answers OUT LOUD with their "
+    "app in Nepal. Read the attached textbook page images and/or book content "
+    "carefully. They may contain Devanagari / Nepali text. Extract the "
+    "educational content and generate exactly 16 fun questions for a {age}-"
+    "year-old child in class {grade} studying {subject}. VOICE QUESTIONS ARE "
+    "THE PRIORITY — use this mix:\n"
+    "- 6 'speak' (the child hears the question and answers OUT LOUD with their "
     "voice; the answer should be a short word or phrase)\n"
+    "- 4 'mcq' (multiple choice, 4 options)\n"
+    "- 3 'match' (match-the-following with 3-4 pairs)\n"
+    "- 3 'order' (put 3-4 items in the correct order)\n"
     "Keep language simple and kid-friendly. Return STRICT JSON only:\n"
     '{{"questions": [\n'
+    '  {{"kind":"speak","text":"Say the answer out loud: what is 2 plus 2?",'
+    '"answer":"four","accept":["4","four","char"],"explanation":"..."}},\n'
     '  {{"kind":"mcq","text":"...","options":["a","b","c","d"],'
     '"correct_index":0,"explanation":"..."}},\n'
     '  {{"kind":"match","text":"Match ...","pairs":[{{"left":"..","right":".."}}],'
     '"explanation":"..."}},\n'
     '  {{"kind":"order","text":"Put in order ...","sequence":["first","second","third"],'
-    '"explanation":"..."}},\n'
-    '  {{"kind":"speak","text":"Say the answer out loud: what is 2 plus 2?",'
-    '"answer":"four","accept":["4","four","char"],"explanation":"..."}}\n'
+    '"explanation":"..."}}\n'
     "]}}"
 )
 
@@ -161,29 +162,53 @@ def _validate(payload: dict) -> list[dict]:
 
 QUESTION_KINDS = ["mcq", "match", "order", "speak"]
 
+# Voice-led default mix: more 'speak' questions than the other kinds.
+VOICE_HEAVY_COUNTS = {"speak": 6, "mcq": 4, "match": 3, "order": 3}
 
-def balance_questions(questions: list[dict], per_kind: int = 3) -> list[dict]:
-    """Return an equal number of each question kind, interleaved for variety.
 
-    Picks up to ``per_kind`` questions of each kind (mcq/match/order/speak) and
-    round-robins them so every level ends up with a mix of types. Kinds with
-    fewer than ``per_kind`` available simply contribute what they have.
+def balance_questions(
+    questions: list[dict], per_kind: int | dict[str, int] = 3
+) -> list[dict]:
+    """Return a balanced mix of question kinds, interleaved for variety.
+
+    ``per_kind`` may be a single int (same count for every kind) or a dict
+    mapping each kind to its own count — used to make voice ('speak')
+    questions more frequent than the rest. Kinds with fewer questions
+    available simply contribute what they have.
     """
+    counts = (
+        {k: per_kind for k in QUESTION_KINDS}
+        if isinstance(per_kind, int)
+        else {k: per_kind.get(k, 0) for k in QUESTION_KINDS}
+    )
     buckets = {k: [q for q in questions if q.get("kind") == k] for k in QUESTION_KINDS}
-    picked = {k: buckets[k][:per_kind] for k in QUESTION_KINDS}
+    picked = {k: buckets[k][: counts[k]] for k in QUESTION_KINDS}
+    max_n = max((len(v) for v in picked.values()), default=0)
     ordered: list[dict] = []
-    for i in range(per_kind):
-        for k in QUESTION_KINDS:
+    # Lead with a speak question, then round-robin the rest for variety.
+    for i in range(max_n):
+        for k in ("speak", "mcq", "match", "order"):
             if i < len(picked[k]):
                 ordered.append(picked[k][i])
     return ordered
 
 
-def _fallback_questions(subject: str, age: int, grade: int) -> list[dict]:
-    """Mixed offline fallback with an equal mix of question kinds."""
-    bank = SUBJECT_PACK_MIXED.get(subject, SUBJECT_PACK_MIXED["math"])
+def _fallback_questions(
+    subject: str, age: int, grade: int, use_default: bool = False
+) -> list[dict]:
+    """Voice-heavy offline fallback.
+
+    When nothing was uploaded (``use_default``) the bank is the markdown-based
+    default content; otherwise it uses the subject seed bank. IDs are stripped
+    so the caller can assign fresh ones.
+    """
+    bank = (
+        DEFAULT_QUESTIONS
+        if use_default
+        else SUBJECT_PACK_MIXED.get(subject, SUBJECT_PACK_MIXED["math"])
+    )
     stripped = [{k: v for k, v in q.items() if k != "id"} for q in bank]
-    return balance_questions(stripped, per_kind=3)
+    return balance_questions(stripped, per_kind=VOICE_HEAVY_COUNTS)
 
 
 def derive_lesson(questions: list[dict]) -> list[dict]:
@@ -426,10 +451,22 @@ def generate_questions(
     age: int,
     grade: int,
     image_bytes: list[bytes] | None = None,
+    book_text: str | None = None,
 ) -> list[dict]:
-    """Return a balanced, equal mix of validated question kinds. Never raises."""
+    """Return a balanced, voice-heavy mix of validated questions. Never raises.
+
+    When no pages are uploaded, generation is grounded in the default markdown
+    content (``DEFAULT_BOOK_TEXT``) so the experience works out of the box.
+    """
+    has_images = bool(image_bytes)
+    # No upload → fall back to the default markdown content as the source.
+    grounding = (book_text or "").strip()
+    use_default = not has_images and not grounding
+    if use_default:
+        grounding = DEFAULT_BOOK_TEXT
+
     if not settings.GEMINI_API_KEY:
-        return _fallback_questions(subject, age, grade)
+        return _fallback_questions(subject, age, grade, use_default=use_default)
 
     try:
         from google import genai
@@ -438,6 +475,8 @@ def generate_questions(
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
         prompt = SYSTEM_PROMPT.format(age=age, grade=grade, subject=subject)
+        if grounding:
+            prompt += f"\n\n=== BOOK CONTENT ===\n{grounding[:6000]}\n=== END ==="
         contents: list = [prompt]
         for img in (image_bytes or [])[:10]:
             contents.append(
@@ -456,13 +495,13 @@ def generate_questions(
         text = (response.text or "").strip()
         payload = json.loads(text)
         valid = _validate(payload)
-        balanced = balance_questions(valid, per_kind=3)
+        balanced = balance_questions(valid, per_kind=VOICE_HEAVY_COUNTS)
         if balanced:
             return balanced
     except Exception as exc:  # pragma: no cover - network/SDK errors
         print(f"[ai] Gemini generation failed, using fallback: {exc}")
 
-    return _fallback_questions(subject, age, grade)
+    return _fallback_questions(subject, age, grade, use_default=use_default)
 
 
 def _normalize(s: str) -> str:

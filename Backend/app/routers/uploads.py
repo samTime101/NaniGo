@@ -3,6 +3,7 @@ import threading
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from ..ai import extract_book_text, generate_lessons, generate_questions
+from ..data.default_content import DEFAULT_BOOK_TEXT
 from ..deps import get_current_parent
 from ..models import QuestionPack, SubjectId, UploadResponse
 from ..store import now_ms, store, uid
@@ -22,9 +23,9 @@ def _run_pipeline(pack_id: str, subject: str, age: int, grade: int, images: list
     try:
         raw = generate_questions(subject, age, grade, images)
         # OCR the pages into plain text so the voice tutor can ground its
-        # answers in the actual book content (RAG). Falls back to an empty
-        # string; the tutor router then derives context from the questions.
-        source_text = extract_book_text(images)
+        # answers in the actual book content (RAG). When nothing was uploaded
+        # we ground the tutor in the default markdown content instead.
+        source_text = extract_book_text(images) or DEFAULT_BOOK_TEXT
         questions = []
         for i, q in enumerate(raw):
             questions.append({**q, "id": f"{pack_id}-q{i}"})

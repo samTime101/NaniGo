@@ -19,6 +19,7 @@ import uuid
 
 from .config import settings
 from .data.questions import SUBJECT_PACK_MIXED
+from .data.default_content import DEFAULT_QUESTIONS
 
 _lock = threading.RLock()
 
@@ -90,6 +91,9 @@ class Store:
         self._load()
         if not self.packs:
             self._seed()
+        # Always ensure the English book pack is present (adds it to existing DBs).
+        if "default-english" not in self.packs:
+            self._ensure_english_book()
 
     # ---------- schema ----------
     def _init_schema(self) -> None:
@@ -225,6 +229,7 @@ class Store:
         self.save_pack(
             _default_pack("science", "Science Explorer", "विज्ञान खोज", SUBJECT_PACK_MIXED["science"])
         )
+        self._ensure_english_book()
 
         parent_id = "parent-1"
         self.save_parent(
@@ -283,6 +288,32 @@ class Store:
     @property
     def lock(self):
         return _lock
+
+    def _ensure_english_book(self) -> None:
+        """Add (or refresh) the default English textbook pack.
+
+        This is called both during initial seeding AND on every startup so
+        that any existing database gets the pack added without needing a wipe.
+        """
+        pack_id = "default-english"
+        # Assign fresh sequential ids so they don't collide with other banks.
+        questions = []
+        for i, q in enumerate(DEFAULT_QUESTIONS):
+            questions.append({**q, "id": f"{pack_id}-q{i}"})
+        pack = {
+            "id": pack_id,
+            "title": "English Book",
+            "title_np": "अंग्रेजी किताब",
+            "subject": "nepali",   # language-skill subject bucket
+            "type": "default",
+            "status": "ready",
+            "grade": 5,
+            "created_by": None,
+            "source_text": "",     # grounded via DEFAULT_BOOK_TEXT in ai.py
+            "questions": questions,
+            "levels": _build_levels(pack_id, questions, 4, max(1, len(questions) // 4)),
+        }
+        self.save_pack(pack)
 
     def child_by_code(self, code: str):
         for c in self.children.values():

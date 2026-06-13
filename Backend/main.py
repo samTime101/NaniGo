@@ -43,3 +43,4 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "ai": bool(settings.GEMINI_API_KEY)}
+    
