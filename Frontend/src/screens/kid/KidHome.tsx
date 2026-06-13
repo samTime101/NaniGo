@@ -145,7 +145,7 @@ export default function KidHome() {
           </motion.div>
         </div>
 
-        <div className="relative z-10 -mt-5 flex-1 px-5 pt-2">
+        <div className="relative z-10 flex-1 px-5 pt-4">
           {/* My Book personalized cards (targeted to this child) */}
           {myBooks.map((book) => (
             <motion.button
@@ -175,7 +175,7 @@ export default function KidHome() {
           {myBooks.length > 0 && <div className="mb-2" />}
 
           {/* Subjects header with layout toggle */}
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen className="text-teal" />
               <span className="text-lg font-extrabold text-[#444]">
@@ -265,7 +265,7 @@ export default function KidHome() {
 
           {/* Vertical Grid Layout */}
           {layoutMode === 'vertical' && (
-            <div className="grid grid-cols-2 gap-4 pb-28">
+            <div className="grid grid-cols-2 gap-5 pb-28">
               {defaultPacks.map((p, i) => {
                 const meta = getPackMeta(p)
                 const done = activeChild.completedLevels[p.id] ?? 0
