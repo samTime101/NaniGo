@@ -8,8 +8,8 @@ import { useGame } from '../store/GameStore'
 import { useLang } from '../lib/lang'
 
 /**
- * Always-on voice tutor. A floating bot button (bottom-left, on every page once
- * a child is signed in) opens a sheet where the child taps to talk to "Nani",
+ * Always-on voice tutor. Now integrated into the bottom navbar.
+ * Opens a sheet where the child taps to talk to "Nani",
  * an ElevenLabs Conversational AI agent.
  *
  * The agent is grounded in ALL of the child's books at once (no topic picking).
@@ -19,13 +19,33 @@ import { useLang } from '../lib/lang'
  *
  * Renders nothing if the tutor isn't configured or no child is signed in.
  */
-export default function VoiceTutor() {
+
+// Export a function that pages can use to check if tutor is available
+export function useTutorAvailable() {
+  const { activeChild } = useGame()
+  const [enabled, setEnabled] = useState(false)
+
+  useEffect(() => {
+    api
+      .tutorConfig()
+      .then((c) => setEnabled(c.enabled))
+      .catch(() => setEnabled(false))
+  }, [])
+
+  return enabled && activeChild?.isPro
+}
+
+export default function VoiceTutor({ open, onClose }: { open?: boolean; onClose?: () => void }) {
   const { activeChild } = useGame()
   const { lang } = useLang()
   const [enabled, setEnabled] = useState(false)
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
   const [connecting, setConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Use prop open state if provided, otherwise use internal state
+  const isOpen = open ?? internalOpen
+  const setOpen = onClose ? (val: boolean) => !val && onClose() : setInternalOpen
 
   const conversation = useConversation({
     onError: (e: unknown) =>
@@ -44,9 +64,9 @@ export default function VoiceTutor() {
 
   // End the session when the sheet closes.
   useEffect(() => {
-    if (!open && connected) conversation.endSession()
+    if (!isOpen && connected) conversation.endSession()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+  }, [isOpen])
 
   const start = async () => {
     setError(null)
@@ -83,11 +103,13 @@ export default function VoiceTutor() {
 
   // Auto-start the conversation as soon as the sheet is opened (the tap that
   // opens it counts as the user gesture needed for microphone access).
-  const openSheet = () => {
-    setError(null)
-    setOpen(true)
-    void start()
-  }
+  useEffect(() => {
+    if (isOpen && !connected && !connecting) {
+      setError(null)
+      void start()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
 
   if (!enabled) return null
   if (!activeChild) return null
@@ -95,23 +117,8 @@ export default function VoiceTutor() {
 
   return (
     <>
-      {/* Floating launcher — bottom-left, on every page */}
-      <motion.button
-        whileTap={{ scale: 0.9 }}
-        animate={{ y: [0, -5, 0] }}
-        transition={{ repeat: Infinity, duration: 2.2 }}
-        onClick={openSheet}
-        aria-label="Ask Nani"
-        className="fixed bottom-24 left-4 z-40 flex items-center gap-2 rounded-full bg-orange py-2 pl-2 pr-4 font-extrabold text-white shadow-[0_8px_20px_-6px_rgba(254,101,56,0.7)]"
-      >
-        <span className="rounded-full bg-white/20 p-1">
-          <Mascot mood="happy" size={34} />
-        </span>
-        <span className="text-sm">Ask Nani</span>
-      </motion.button>
-
       <AnimatePresence>
-        {open && (
+        {isOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

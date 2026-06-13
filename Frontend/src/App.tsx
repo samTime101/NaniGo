@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useState } from 'react'
 import Splash from './screens/Splash'
 import RoleSelect from './screens/RoleSelect'
 import ParentAuth from './screens/parent/ParentAuth'
@@ -23,10 +24,22 @@ import Leaderboard from './screens/kid/Leaderboard'
 import Profile from './screens/kid/Profile'
 import VoiceTutor from './components/VoiceTutor'
 
+// Global tutor control context
+export const TutorContext = React.createContext<{
+  openTutor: () => void
+}>({ openTutor: () => {} })
+
+import React from 'react'
+
 export default function App() {
   const location = useLocation()
+  const [tutorOpen, setTutorOpen] = useState(false)
+  
+  const openTutor = () => setTutorOpen(true)
+  const closeTutor = () => setTutorOpen(false)
+  
   return (
-    <>
+    <TutorContext.Provider value={{ openTutor }}>
       <AnimatePresence mode="wait">
         <motion.div
           key={location.pathname}
@@ -66,9 +79,8 @@ export default function App() {
           </Routes>
         </motion.div>
       </AnimatePresence>
-      {/* Always-on voice tutor, accessible from every page. Rendered outside
-          the route transition so the conversation survives navigation. */}
-      <VoiceTutor />
-    </>
+      {/* Always-on voice tutor modal, controlled from navbar */}
+      <VoiceTutor open={tutorOpen} onClose={closeTutor} />
+    </TutorContext.Provider>
   )
 }

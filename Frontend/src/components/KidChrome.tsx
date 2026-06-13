@@ -9,9 +9,12 @@ import {
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { NavLink } from 'react-router-dom'
+import { useContext } from 'react'
 import type { Child } from '../types'
 import { useT } from '../lib/lang'
 import { useGame } from '../store/GameStore'
+import { TutorContext } from '../App'
+import { useTutorAvailable } from './VoiceTutor'
 
 const iconHome = new URL('../assets/Icons_Illustration/Icon_Home.png', import.meta.url).href
 const iconBattle = new URL('../assets/Icons_Illustration/Icon_Battle.png', import.meta.url).href
@@ -50,6 +53,8 @@ export function KidTopBar({ child }: { child: Child }) {
 /** Floating rounded dock — sticky to the bottom. */
 export function BottomNav() {
   const t = useT()
+  const { openTutor } = useContext(TutorContext)
+  const tutorAvailable = useTutorAvailable()
   
   const tabs = [
     { to: '/kid/home', img: iconHome, label: t('home') },
@@ -60,7 +65,58 @@ export function BottomNav() {
   
   return (
     <div className="sticky bottom-3 z-30 mx-3 mt-2 flex items-center justify-around rounded-[26px] border border-white/60 bg-white/95 px-2 py-2 shadow-[0_8px_24px_rgba(13,168,167,0.25)] backdrop-blur">
-      {tabs.map((tab) => (
+      {/* First 2 tabs */}
+      {tabs.slice(0, 2).map((tab) => (
+        <NavLink key={tab.to} to={tab.to} className="flex-1">
+          {({ isActive }) => (
+            <motion.div
+              whileTap={{ scale: 0.88 }}
+              className="flex flex-col items-center py-0.5"
+            >
+              <div
+                className={`rounded-2xl px-4 py-2 transition-colors ${
+                  isActive
+                    ? 'bg-teal/10 shadow-[0_4px_10px_rgba(13,168,167,0.2)]'
+                    : ''
+                }`}
+              >
+                <img
+                  src={tab.img}
+                  alt={tab.label}
+                  className={`h-10 w-10 object-contain transition-all ${
+                    isActive ? '' : 'opacity-50 grayscale'
+                  }`}
+                />
+              </div>
+            </motion.div>
+          )}
+        </NavLink>
+      ))}
+      
+      {/* Ask Nani button in center - only show if tutor is available */}
+      {tutorAvailable && (
+        <div className="flex flex-1 justify-center">
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            animate={{ y: [0, -3, 0] }}
+            transition={{ repeat: Infinity, duration: 2.2 }}
+            onClick={openTutor}
+            className="flex flex-col items-center py-0.5"
+            aria-label="Ask Nani"
+          >
+            <div className="rounded-2xl bg-orange px-4 py-2 shadow-[0_4px_10px_rgba(254,101,56,0.3)]">
+              <img
+                src={new URL('../assets/Icons_Illustration/Hello_Panda.png', import.meta.url).href}
+                alt="Ask Nani"
+                className="h-10 w-10 object-contain"
+              />
+            </div>
+          </motion.button>
+        </div>
+      )}
+      
+      {/* Last 2 tabs */}
+      {tabs.slice(2).map((tab) => (
         <NavLink key={tab.to} to={tab.to} className="flex-1">
           {({ isActive }) => (
             <motion.div

@@ -14,7 +14,7 @@ import { cue } from '../../lib/confetti'
 import { useT } from '../../lib/lang'
 import type { AvatarId } from '../../types'
 
-type Phase = 'match' | 'vs' | 'play' | 'result'
+type Phase = 'lobby' | 'match' | 'vs' | 'play' | 'result'
 type PuzzleType = 'mcq' | 'word' | 'missing' | 'order' | 'picture'
 
 interface BattleQuestion {
@@ -41,7 +41,7 @@ export default function Battle() {
   const nav = useNavigate()
   const t = useT()
   const { activeChild, packs, awardXp, ready } = useGame()
-  const [phase, setPhase] = useState<Phase>('match')
+  const [phase, setPhase] = useState<Phase>('lobby')
   const [qIdx, setQIdx] = useState(0)
   const [myScore, setMyScore] = useState(0)
   const [botScore, setBotScore] = useState(0)
@@ -214,6 +214,112 @@ export default function Battle() {
   }
 
   // ---------- render phases ----------
+  if (phase === 'lobby') {
+    return (
+      <Screen>
+        <div className="flex min-h-svh flex-col bg-gradient-to-br from-teal/20 via-orange/10 to-purple/15">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4">
+            <button
+              onClick={() => nav('/kid/home')}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 shadow-sm"
+            >
+              <ArrowLeft size={20} className="text-teal" />
+            </button>
+            <h1 className="text-xl font-extrabold text-teal">{t('battle')}</h1>
+            <div className="w-10" />
+          </div>
+
+          {/* Main Content */}
+          <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 pb-20">
+            {/* Battle Icon Animation */}
+            <motion.div
+              animate={{
+                scale: [1, 1.1, 1],
+                rotate: [0, 5, -5, 0],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                repeatType: 'reverse',
+              }}
+              className="relative"
+            >
+              <div className="absolute -inset-4 rounded-full bg-gradient-to-br from-orange/30 to-teal/30 blur-xl" />
+              <div className="relative flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-orange to-orange-dark shadow-xl">
+                <Zap size={60} className="fill-gold text-gold drop-shadow-lg" />
+              </div>
+            </motion.div>
+
+            {/* Title & Description */}
+            <div className="text-center">
+              <h2 className="mb-2 text-3xl font-extrabold text-teal">
+                {t('readyToBattle') || 'Ready to Battle?'}
+              </h2>
+              <p className="text-lg font-semibold text-orange">
+                {t('challengeOpponent') || 'Challenge an opponent and win XP!'}
+              </p>
+            </div>
+
+            {/* Your Stats Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-lg"
+            >
+              <div className="mb-4 text-center text-sm font-bold text-[#999]">
+                {t('yourProfile') || 'Your Profile'}
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar id={activeChild.avatar} size={80} ring />
+                <div className="flex-1">
+                  <div className="mb-1 text-2xl font-extrabold text-teal">
+                    {activeChild.name}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1 text-sm font-bold text-orange">
+                      <Crown size={16} className="fill-gold text-gold" />
+                      {activeChild.totalXp} {t('xp')}
+                    </span>
+                    <span className="text-sm font-semibold text-[#666]">
+                      {t('ready') || 'Ready!'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Battle Info */}
+            <div className="w-full max-w-sm space-y-3">
+              <InfoCard
+                icon="⚡"
+                title={t('quickMatch') || 'Quick Match'}
+                desc={t('quickMatchDesc') || '5 random questions'}
+              />
+              <InfoCard
+                icon="🏆"
+                title={t('winRewards') || 'Win Rewards'}
+                desc={t('winRewardsDesc') || 'Earn bonus XP for winning'}
+              />
+            </div>
+
+            {/* Start Button */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setPhase('match')}
+              className="w-full max-w-sm rounded-full bg-gradient-to-r from-orange to-orange-dark px-8 py-5 text-2xl font-extrabold text-white shadow-[0_8px_0_0_rgba(254,101,56,0.4)] active:shadow-[0_4px_0_0_rgba(254,101,56,0.4)] active:translate-y-1"
+            >
+              {t('startBattle') || 'Start Battle!'}
+            </motion.button>
+          </div>
+
+          <BottomNav />
+        </div>
+      </Screen>
+    )
+  }
+
   if (phase === 'match') {
     return (
       <Screen>
@@ -278,7 +384,7 @@ export default function Battle() {
               full
               onClick={() => {
                 awardXp(activeChild.id, won ? 50 : 20)
-                setPhase('match')
+                setPhase('lobby')
                 setQIdx(0)
                 setMyScore(0)
                 setBotScore(0)
@@ -300,17 +406,25 @@ export default function Battle() {
       <div className="flex min-h-svh flex-col bg-cream">
         {/* split score bar */}
         <div className="flex items-center gap-3 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <Avatar id={activeChild.avatar} size={40} />
-            <span className="font-extrabold text-teal">{myScore}</span>
-          </div>
-          <div className="flex h-3 flex-1 overflow-hidden rounded-full bg-mist">
-            <div className="bg-teal transition-all" style={{ width: `${(myScore / total) * 100}%` }} />
-            <div className="bg-orange transition-all" style={{ width: `${(botScore / total) * 100}%` }} />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-extrabold text-orange">{botScore}</span>
-            <Avatar id={bot.avatar} size={40} />
+          <button
+            onClick={() => nav('/kid/home')}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm"
+          >
+            <ArrowLeft size={20} className="text-teal" />
+          </button>
+          <div className="flex flex-1 items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Avatar id={activeChild.avatar} size={40} />
+              <span className="font-extrabold text-teal">{myScore}</span>
+            </div>
+            <div className="flex h-3 flex-1 overflow-hidden rounded-full bg-mist">
+              <div className="bg-teal transition-all" style={{ width: `${(myScore / total) * 100}%` }} />
+              <div className="bg-orange transition-all" style={{ width: `${(botScore / total) * 100}%` }} />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-orange">{botScore}</span>
+              <Avatar id={bot.avatar} size={40} />
+            </div>
           </div>
         </div>
 
@@ -439,6 +553,18 @@ function Podium({
       <span className="font-bold text-[#444]">{name}</span>
       <span className="font-extrabold text-teal">{score}</span>
       <div className="w-20 rounded-t-xl" style={{ height: h, background: color }} />
+    </div>
+  )
+}
+
+function InfoCard({ icon, title, desc }: { icon: string; title: string; desc: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-white/80 p-4 shadow-sm backdrop-blur">
+      <div className="text-3xl">{icon}</div>
+      <div className="flex-1">
+        <div className="text-sm font-extrabold text-teal">{title}</div>
+        <div className="text-xs font-semibold text-[#666]">{desc}</div>
+      </div>
     </div>
   )
 }

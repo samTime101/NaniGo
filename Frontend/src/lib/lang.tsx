@@ -154,6 +154,15 @@ const translations = {
   youWon: { en: 'You Won!', np: 'तपाईं जित्नुभयो!' },
   goodTry: { en: 'Good Try!', np: 'राम्रो प्रयास!' },
   rematch: { en: 'Rematch', np: 'पुनः खेल्नुहोस्' },
+  readyToBattle: { en: 'Ready to Battle?', np: 'लडाइँको लागि तयार?' },
+  challengeOpponent: { en: 'Challenge an opponent and win XP!', np: 'प्रतिद्वन्द्वीलाई चुनौती दिनुहोस् र XP जित्नुहोस्!' },
+  yourProfile: { en: 'Your Profile', np: 'तपाईंको प्रोफाइल' },
+  ready: { en: 'Ready!', np: 'तयार!' },
+  quickMatch: { en: 'Quick Match', np: 'छिटो खेल' },
+  quickMatchDesc: { en: '5 random questions', np: '५ अनियमित प्रश्नहरू' },
+  winRewards: { en: 'Win Rewards', np: 'पुरस्कार जित्नुहोस्' },
+  winRewardsDesc: { en: 'Earn bonus XP for winning', np: 'जित्दा बोनस XP पाउनुहोस्' },
+  startBattle: { en: 'Start Battle!', np: 'लडाइँ सुरु गर्नुहोस्!' },
   
   // Leaderboard
   leaderboard: { en: 'Leaderboard', np: 'लिडरबोर्ड' },
